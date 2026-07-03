@@ -136,3 +136,26 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Python 虚拟环境（必须加！）
+myenv/
+venv/
+env/
+
+# 编译产生的临时文件
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE 配置（如果不用就忽略）
+.vscode/
+.idea/
+
+# 日志和数据库
+*.log
+*.db
+*.sqlite3
+
+# 操作系统垃圾文件
+.DS_Store
+Thumbs.db
