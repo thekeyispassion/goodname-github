@@ -31,8 +31,8 @@ def _load_api_key():
     if key:
         return key
 
-    # 3) 最后回退（仅供本地开发使用，替换成你的 Key）
-    return "sk-029f7e9e5bca42cda984ac02dfc82424"
+    # 3) 最后回退（无 Key 时提示用户配置）
+    return ""
 
 DEEPSEEK_API_KEY = _load_api_key()
 
