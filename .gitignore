@@ -159,3 +159,12 @@ __pycache__/
 # 操作系统垃圾文件
 .DS_Store
 Thumbs.db
+
+# Claude Code 配置（含 API Key 等敏感信息，不要提交）
+.claude/
+
+# 项目数据库文件
+goodname.db
+
+# 本地环境配置（含API Key）
+.env
