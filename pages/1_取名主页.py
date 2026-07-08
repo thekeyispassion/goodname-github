@@ -132,8 +132,11 @@ if st.session_state.info_submitted and st.session_state.session_id is None:
     uid = st.session_state.user_id
     if get_user_balance(supabase, uid) < 1:
         st.error("❌ 余额不足，请先充值")
-        st.session_state.info_submitted = False
+        # 不提前设 info_submitted=False，保留页面状态让用户看到按钮
         if st.button("⚡ 去充值", type="primary"):
+            st.session_state.info_submitted = False
+            st.session_state.is_processing = False
+            st.session_state.profile_page = "recharge"
             st.switch_page("pages/3_个人中心.py")
         st.stop()
 
@@ -169,6 +172,8 @@ if st.session_state.get('need_process', False):
     if get_user_balance(supabase, uid) < 1:
         st.error("❌ 余额不足，请充值")
         if st.button("⚡ 去充值"):
+            st.session_state.is_processing = False
+            st.session_state.profile_page = "recharge"
             st.switch_page("pages/3_个人中心.py")
         st.stop()
 

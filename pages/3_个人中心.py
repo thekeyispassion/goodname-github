@@ -205,6 +205,20 @@ with c2:
     </div>""", unsafe_allow_html=True)
     if st.button("⚡ 立即充值", type="primary", use_container_width=True):
         st.session_state.profile_page = "recharge"; st.rerun()
+    # ── 测试账户余额控制 ──
+    if st.session_state.user_email == "test@test.com":
+        st.markdown("---")
+        with st.expander("🔧 测试模式：控制余额"):
+            new_bal = st.number_input("设置余额（次）", min_value=0, value=balance, step=10)
+            if st.button("更新余额", use_container_width=True):
+                current = supabase.table("user_balances").select("*").eq("user_id", uid).execute()
+                if current.data:
+                    supabase.table("user_balances").update({"balance": int(new_bal)}).eq("user_id", uid).execute()
+                else:
+                    supabase.table("user_balances").insert({"user_id": uid, "balance": int(new_bal)}).execute()
+                st.success(f"余额已更新为 {int(new_bal)} 次")
+                st.rerun()
+
     with st.expander("📄 充值记录"):
         recs = get_recharge_records(supabase, uid)[:20]
         if recs:
