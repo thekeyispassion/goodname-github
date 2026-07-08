@@ -27,6 +27,8 @@ div[data-testid="stAppViewContainer"] > section {{
 #root, .stApp, [data-testid="stMain"] {{
     font-family: "PingFang SC", "Inter", "Microsoft YaHei", sans-serif !important;
     color: {INK} !important;
+    font-size: 110% !important;
+    zoom: 1.1;
 }}
 
 /* ============ 主按钮（朱砂红） ============ */
