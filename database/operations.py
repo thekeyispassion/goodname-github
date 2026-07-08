@@ -124,6 +124,143 @@ def get_user_sessions(supabase, user_id: str) -> list:
     return result.data
 
 
+# ========== 余额相关操作（v2.0） ==========
+
+def get_user_balance(supabase, user_id: str) -> int:
+    """查询用户剩余生成次数。如果还没有余额记录，自动创建并赠送20次。"""
+    result = supabase.table("user_balances") \
+        .select("balance") \
+        .eq("user_id", user_id) \
+        .execute()
+    if result.data:
+        return result.data[0]['balance']
+
+    # 自动创建余额记录（新用户送20次）
+    try:
+        supabase.table("user_balances").insert({
+            "user_id": user_id,
+            "balance": 20,
+        }).execute()
+        return 20
+    except Exception:
+        return 0
+
+
+def deduct_balance(supabase, user_id: str, session_id: str, consume_type: str = 'generate') -> bool:
+    """
+    扣除1次生成次数，使用乐观锁防并发。
+    返回 True=扣费成功，False=余额不足。
+    """
+    # 读取当前余额和版本号
+    result = supabase.table("user_balances") \
+        .select("balance, version") \
+        .eq("user_id", user_id) \
+        .execute()
+
+    if not result.data or result.data[0]['balance'] < 1:
+        return False
+
+    row = result.data[0]
+    new_balance = row['balance'] - 1
+    old_version = row['version']
+
+    # 乐观锁更新
+    supabase.table("user_balances") \
+        .update({
+            "balance": new_balance,
+            "total_consumed": row.get('total_consumed', 0) + 1,
+            "version": old_version + 1,
+            "updated_at": datetime.now().isoformat()
+        }) \
+        .eq("user_id", user_id) \
+        .eq("version", old_version) \
+        .execute()
+
+    # 记录消费
+    supabase.table("consumption_records").insert({
+        "user_id": user_id,
+        "session_id": session_id,
+        "amount": 1,
+        "consumption_type": consume_type
+    }).execute()
+
+    return True
+
+
+def add_balance(supabase, user_id: str, amount: int, money: float, method: str):
+    """充值：增加余额，记录充值流水。"""
+    result = supabase.table("user_balances") \
+        .select("balance, total_recharged") \
+        .eq("user_id", user_id) \
+        .execute()
+
+    if not result.data:
+        # 没有余额记录 → 创建一条
+        supabase.table("user_balances").insert({
+            "user_id": user_id, "balance": amount,
+            "total_recharged": amount
+        }).execute()
+        new_balance = amount
+    else:
+        new_balance = result.data[0]['balance'] + amount
+        new_recharged = result.data[0].get('total_recharged', 0) + amount
+        supabase.table("user_balances") \
+        .update({
+            "balance": new_balance,
+            "total_recharged": new_recharged,
+            "updated_at": datetime.now().isoformat()
+        }) \
+        .eq("user_id", user_id) \
+        .execute()
+
+    # 记录充值流水
+    supabase.table("recharge_records").insert({
+        "user_id": user_id,
+        "amount": amount,
+        "money": money,
+        "payment_method": method,
+        "status": "success"
+    }).execute()
+
+    return True
+
+
+def get_recharge_records(supabase, user_id: str) -> list:
+    """查询充值记录。"""
+    result = supabase.table("recharge_records") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .order("created_at", desc=True) \
+        .execute()
+    return result.data
+
+
+def get_consumption_records(supabase, user_id: str) -> list:
+    """查询消费记录。"""
+    result = supabase.table("consumption_records") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .order("created_at", desc=True) \
+        .execute()
+    return result.data
+
+
+def change_password(supabase, current_password: str, new_password: str) -> bool:
+    """修改密码。"""
+    try:
+        user = supabase.auth.get_user()
+        # 先用旧密码登录验证
+        supabase.auth.sign_in_with_password({
+            "email": user.user.email,
+            "password": current_password
+        })
+        # 更新密码
+        supabase.auth.update_user({"password": new_password})
+        return True
+    except Exception:
+        return False
+
+
 # ========== 单独测试 ==========
 if __name__ == "__main__":
     from database.init import init_database

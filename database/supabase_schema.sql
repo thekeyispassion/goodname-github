@@ -50,27 +50,12 @@ CREATE TABLE conversation_messages (
 );
 
 -- 4. 用户信息表（Supabase 自动创建 auth.users，这里存额外信息）
-CREATE TABLE profiles (
+-- 注意：此表不用触发器，由应用层懒创建
+CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id),
     username TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- 当新用户注册时自动创建 profile
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO profiles (id, username)
-    VALUES (NEW.id, NEW.raw_user_meta_data->>'username');
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 触发器：用户注册后自动调用
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE FUNCTION handle_new_user();
 
 -- =============================================================
 -- 行级安全策略（RLS）- 用户只能看自己的数据
@@ -113,3 +98,40 @@ CREATE POLICY "用户只能操作自己的 profile"
     FOR ALL
     USING (id = auth.uid())
     WITH CHECK (id = auth.uid());
+
+-- =============================================================
+-- v2.0 新增表：余额/充值/消费
+-- =============================================================
+
+-- 5. 用户余额表
+CREATE TABLE IF NOT EXISTS user_balances (
+    user_id UUID PRIMARY KEY REFERENCES auth.users(id),
+    balance INTEGER DEFAULT 0,
+    total_recharged INTEGER DEFAULT 0,
+    total_consumed INTEGER DEFAULT 0,
+    version INTEGER DEFAULT 1,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. 充值记录表
+CREATE TABLE IF NOT EXISTS recharge_records (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id),
+    amount INTEGER NOT NULL,
+    money DECIMAL(10,2) NOT NULL,
+    payment_method TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. 消费记录表
+CREATE TABLE IF NOT EXISTS consumption_records (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id),
+    session_id TEXT REFERENCES naming_sessions(session_id),
+    amount INTEGER NOT NULL,
+    consumption_type TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 注：余额不设触发器，由 get_user_balance() 懒创建（新用户首次查询时自动送20次）
