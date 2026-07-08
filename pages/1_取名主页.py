@@ -15,6 +15,10 @@ from ui.chat_area import render_chat_area
 
 st.set_page_config(page_title="取名主页", page_icon="📛", layout="wide")
 
+# ── 注入新中式主题 ──
+from ui.theme import apply_theme, render_topnav
+apply_theme()
+
 # 移除 Streamlit 自动生成的左侧导航栏（Pages 菜单）
 st.markdown("""
 <style>
@@ -49,21 +53,12 @@ if not st.session_state.get('user_id'):
 
 # ── 顶部导航 ──
 balance = get_user_balance(supabase, st.session_state.user_id)
-cols = st.columns([2, 1, 1, 2, 1, 1])
-with cols[0]: st.markdown("### 📛 智能取名系统")
-with cols[1]: st.markdown("##### ✅ 取名主页")
-with cols[2]: st.page_link("pages/2_历史记录.py", label="历史记录")
-with cols[3]: st.markdown(f"<h4 style='text-align:right'>💰 余额：{balance}次</h4>", unsafe_allow_html=True)
-with cols[4]: st.page_link("pages/3_个人中心.py", label="👤 个人中心")
-with cols[5]:
-    if st.button("🚪 退出"):
-        # 退出前记住邮箱，下次登录自动填充
-        st.session_state.remembered_email = st.session_state.user_email
-        st.session_state.user_id = None
-        st.session_state.user_email = None
-        st.query_params.clear()
-        st.switch_page("app.py")
-st.markdown("---")
+if render_topnav("home", balance, st.session_state.user_email):
+    st.session_state.remembered_email = st.session_state.user_email
+    st.session_state.user_id = None
+    st.session_state.user_email = None
+    st.query_params.clear()
+    st.switch_page("app.py")
 
 # ── 初始化页内状态 ──
 for key in ['messages', 'round_number', 'session_id', 'info_submitted',
@@ -82,7 +77,6 @@ for key in ['messages', 'round_number', 'session_id', 'info_submitted',
 
 # ── 侧边栏 ──
 with st.sidebar:
-    st.markdown("## 📝 取名信息采集")
     if st.session_state.info_submitted:
         info = st.session_state.user_input
         st.info(f"👤 {info.get('surname','')}姓 {info.get('gender','')}"
@@ -95,11 +89,14 @@ with st.sidebar:
 # ── 主区域 ──
 if not st.session_state.info_submitted:
     st.markdown("""
-    <div style='text-align:center; padding-top:80px;'>
-        <h1 style='font-size:3em;'>📛</h1>
-        <h2>智能取名系统</h2>
-        <p style='color:#8C8C8C;'>请在左侧填写信息，点击「开始取名」</p>
-        <p style='color:#999; font-size:14px;'>每次生成消耗1次余额</p>
+    <div style='text-align:center; padding-top:70px;'>
+        <div style='display:inline-flex; align-items:center; justify-content:center;
+                    width:84px; height:84px; border-radius:22px;
+                    background:#C43D3D; color:#fff; font-size:44px;
+                    box-shadow:0 10px 28px rgba(196,61,61,.28); margin-bottom:22px;'>印</div>
+        <h2 style='font-family:"Noto Serif SC",serif; color:#2C2C2C; margin:0;'>智能取名系统</h2>
+        <p style='color:#8C8C8C; margin:10px 0 4px;'>请在左侧填写信息，点击「开始取名」</p>
+        <p style='color:#B0AAA0; font-size:13px;'>每次生成消耗 1 次余额</p>
     </div>""", unsafe_allow_html=True)
 else:
     render_chat_area()

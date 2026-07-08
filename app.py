@@ -14,6 +14,10 @@ from database.operations import get_user_balance
 
 st.set_page_config(page_title="智能取名系统 - 登录", page_icon="📛", layout="centered")
 
+# ── 注入新中式主题 ──
+from ui.theme import apply_theme
+apply_theme()
+
 # 移除 Streamlit 自动生成的左侧导航栏（Pages 菜单）
 st.markdown("""
 <style>

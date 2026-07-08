@@ -115,49 +115,49 @@ def _display_names(names_data, msg_idx=0):
         # [1,4,1] 表示中间列宽度是左右列的4倍
         col_score, col_info, col_action = st.columns([1, 4, 1])
 
-        # ———— 左边：评分 ————
+        # ── 左边：评分 ──
         with col_score:
             score = name.get('score', 0) or 0
-            # 评分颜色：≥90 绿色，≥80 黄色，<80 橙色
-            if score >= 90:
-                score_icon = "🟢"
-            elif score >= 80:
-                score_icon = "🟡"
-            else:
-                score_icon = "🟠"
-            st.markdown(f"### {score_icon}")
-            st.caption(f"评分 {score}")
+            if score >= 90: ring, txt = "#43A047", "#fff"
+            elif score >= 80: ring, txt = "#D4AF37", "#fff"
+            else: ring, txt = "#FB8C00", "#fff"
+            st.markdown(
+                f"<div style='display:flex;flex-direction:column;align-items:center;'>"
+                f"<div style='width:46px;height:46px;border-radius:50%;background:{ring};"
+                f"color:{txt};display:flex;align-items:center;justify-content:center;"
+                f"font-weight:700;font-size:18px;box-shadow:0 3px 10px rgba(0,0,0,.12);'>{score}</div>"
+                f"<span style='color:#8C8C8C;font-size:12px;margin-top:4px;'>评分</span></div>",
+                unsafe_allow_html=True)
 
-        # ———— 中间：名字信息 ————
+        # ── 中间：名字信息 ──
         with col_info:
-            # 全名（姓氏+名字）
             full_name = name.get('full_name') or name.get('name', '')
-            st.markdown(f"### **{full_name}**")
+            st.markdown(
+                f"<div class='gn-name' style='font-size:24px;'>{full_name}</div>",
+                unsafe_allow_html=True)
 
-            # 字数不匹配时显示警告
             if name.get('_length_mismatch'):
                 st.warning("⚠️ 字数未完全匹配，建议继续修改")
 
-            # 字义解析
             meaning = name.get('meaning', '')
             if meaning:
                 st.markdown(f"📖 *{meaning}*")
 
-            # 文化出处
             cultural_ref = name.get('cultural_ref', '')
             if cultural_ref:
                 st.markdown(f"📚 {cultural_ref}")
 
-            # 五行属性 + 音韵分析（放同一行）
+            # 五行属性 + 音韵分析（徽章形式）
             wuxing = name.get('wuxing', '')
             sound = name.get('sound_rhythm', '')
             tags = []
             if wuxing:
-                tags.append(f"🔥 五行：{wuxing}")
+                tags.append(f"<span class='gn-tag'>🔥 五行：{wuxing}</span>")
             if sound:
-                tags.append(f"🎵 {sound}")
+                tags.append(f"<span class='gn-tag gn-tag-gray'>🎵 {sound}</span>")
             if tags:
-                st.markdown(" | ".join(tags))
+                st.markdown("<div style='margin-top:6px;'>" + "".join(tags) + "</div>",
+                            unsafe_allow_html=True)
 
         # ———— 右边：收藏按钮（功能预留） ————
         with col_action:

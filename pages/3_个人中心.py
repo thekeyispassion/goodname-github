@@ -6,10 +6,14 @@ import streamlit as st
 from database.init import init_database as _init_db
 from database.operations import (
     get_user_balance, add_balance, get_recharge_records,
-    get_consumption_records, change_password
+    get_consumption_records, change_password, delete_user_account
 )
 
 st.set_page_config(page_title="个人中心", page_icon="👤", layout="wide")
+
+# ── 注入新中式主题 ──
+from ui.theme import apply_theme, render_topnav, card
+apply_theme()
 
 # 移除左侧栏（该页不需要）
 st.markdown("""
@@ -44,29 +48,36 @@ balance = get_user_balance(supabase, uid)
 sub = st.session_state.get('profile_page', 'main')
 
 # ── 顶部导航 ──
-cols = st.columns([2, 1, 1, 2, 1, 1])
-with cols[0]: st.markdown("### 📛 智能取名系统")
-with cols[1]: st.page_link("pages/1_取名主页.py", label="取名主页")
-with cols[2]: st.page_link("pages/2_历史记录.py", label="历史记录")
-with cols[3]: st.markdown(f"<h4 style='text-align:right'>💰 余额：{balance}次</h4>", unsafe_allow_html=True)
-with cols[4]: st.markdown("##### ✅ 个人中心")
-with cols[5]:
-    if st.button("🚪 退出"):
-        st.session_state.remembered_email = st.session_state.user_email
-        st.session_state.user_id = None; st.session_state.user_email = None
-        st.query_params.clear(); st.switch_page("app.py")
-st.markdown("---")
+if render_topnav("profile", balance, st.session_state.user_email):
+    st.session_state.remembered_email = st.session_state.user_email
+    st.session_state.user_id = None; st.session_state.user_email = None
+    st.query_params.clear(); st.switch_page("app.py")
 
 # ═══════════════════════════════════════
 # 子页面：充值
 # ═══════════════════════════════════════
 if sub == 'recharge':
-    st.markdown("## 💰 余额与充值")
-    if st.button("← 返回"): st.session_state.profile_page = "main"; st.rerun()
-    st.markdown(f"<h2 style='color:#C43D3D;'>{balance} 次</h2>", unsafe_allow_html=True)
+    st.markdown(
+        "<h3 style='font-family:\"Noto Serif SC\",serif;color:#2C2C2C;margin:6px 0 12px;'>"
+        "💰 余额与充值</h3>", unsafe_allow_html=True)
+    if st.button("← 返回个人中心", use_container_width=True):
+        st.session_state.profile_page = "main"; st.rerun()
 
-    plans = {"10次 (¥5.00)": (10,5.0), "30次 (¥12.00) 🏷️": (30,12.0), "100次 (¥35.00) 🔥": (100,35.0)}
-    selected = st.radio("充值档位", list(plans.keys()), index=1)
+    # 余额大卡片
+    st.markdown(f"""
+    <div style="background:#FFF;border:1px solid #E5E0D8;border-radius:12px;
+                padding:22px;box-shadow:0 4px 16px rgba(44,44,44,.05);
+                border-top:3px solid #D4AF37;margin-bottom:12px;">
+        <div style='color:#8C8C8C;font-size:14px;'>💰 当前余额</div>
+        <div style='display:flex;align-items:baseline;gap:8px;margin:4px 0;'>
+            <span style='font-size:52px;font-weight:700;color:#C43D3D;
+                    font-family:\"Noto Serif SC\",serif;'>{balance}</span>
+            <span style='color:#8C8C8C;'>次</span></div>
+        <div style='color:#B0AAA0;font-size:13px;'>1 次 = 1 次取名生成</div>
+    </div>""", unsafe_allow_html=True)
+
+    plans = {"10次 (¥5.00)": (10,5.0), "30次 (¥12.00) 🏷️推荐": (30,12.0), "100次 (¥35.00) 🔥超值": (100,35.0)}
+    selected = st.radio("充值档位", list(plans.keys()), index=1, label_visibility="collapsed")
     pay_method = st.selectbox("支付方式", ["支付宝", "微信支付", "银行卡"])
     if st.button("💳 立即充值", type="primary", use_container_width=True):
         amt, money = plans[selected]
@@ -81,49 +92,132 @@ if sub == 'recharge':
 # 子页面：修改密码
 # ═══════════════════════════════════════
 if sub == 'password':
-    st.markdown("## 🔑 修改密码")
-    if st.button("← 返回"): st.session_state.profile_page = "main"; st.rerun()
-    old = st.text_input("当前密码", type="password")
-    new = st.text_input("新密码", type="password", help="至少8位，含大小写字母和数字")
-    confirm = st.text_input("确认新密码", type="password")
-    if st.button("确认修改", type="primary", use_container_width=True):
-        if not old or not new or not confirm: st.error("请填所有字段"); st.stop()
-        if new != confirm: st.error("两次密码不一致"); st.stop()
-        if len(new) < 8: st.error("密码至少8位"); st.stop()
-        if new == old: st.error("新密码不能与旧密码相同"); st.stop()
-        if change_password(supabase, old, new):
-            st.success("✅ 修改成功！请重新登录")
-            st.session_state.user_id = None; st.session_state.user_email = None
-            st.session_state.profile_page = "main"; st.switch_page("app.py")
-        else:
-            st.error("❌ 当前密码错误")
+    _lp, _cp, _rp = st.columns([1, 1.4, 1])
+    with _cp:
+        st.markdown(
+            "<div style='text-align:center;margin-bottom:8px;'>"
+            "<h3 style='color:#C43D3D;font-family:\"Noto Serif SC\",serif;'>🔑 修改密码</h3></div>",
+            unsafe_allow_html=True)
+        if st.button("← 返回个人中心", use_container_width=True):
+            st.session_state.profile_page = "main"; st.rerun()
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        old = st.text_input("当前密码", type="password", placeholder="请输入当前密码")
+        new = st.text_input("新密码", type="password", help="至少8位，含大小写字母和数字",
+                            placeholder="请设置新密码")
+        confirm = st.text_input("确认新密码", type="password", placeholder="请再次输入新密码")
+        if st.button("确认修改", type="primary", use_container_width=True):
+            if not old or not new or not confirm: st.error("请填所有字段"); st.stop()
+            if new != confirm: st.error("两次密码不一致"); st.stop()
+            if len(new) < 8: st.error("密码至少8位"); st.stop()
+            if new == old: st.error("新密码不能与旧密码相同"); st.stop()
+            if change_password(supabase, old, new):
+                st.success("✅ 修改成功！请重新登录")
+                st.session_state.user_id = None; st.session_state.user_email = None
+                st.session_state.profile_page = "main"; st.switch_page("app.py")
+            else:
+                st.error("❌ 当前密码错误")
+        if st.button("取消", use_container_width=True):
+            st.session_state.profile_page = "main"; st.rerun()
     st.stop()
+
+    if sub == 'delete':
+        st.markdown("<h3 style='color:#C62828;font-family:\"Noto Serif SC\",serif;'>⚠️ 注销账户</h3>",
+                    unsafe_allow_html=True)
+        st.warning("注销后所有取名记录、余额、充值记录将被**永久删除**，无法恢复。")
+
+        pwd = st.text_input("请输入密码确认", type="password",
+                           placeholder="输入密码以确认注销")
+        with st.expander("📌 注销须知"):
+            st.markdown("""
+            - 你的所有取名记录将被删除
+            - 余额和充值记录将被清空
+            - 账户信息将从系统中移除
+            - 此操作**不可撤销**
+            """)
+
+        col_d1, col_d2 = st.columns(2)
+        with col_d1:
+            if st.button("确认注销", type="primary", use_container_width=True):
+                if not pwd:
+                    st.error("❌ 请输入密码确认")
+                    st.stop()
+                if delete_user_account(supabase, uid, pwd):
+                    st.success("✅ 账户已注销")
+                    st.session_state.user_id = None
+                    st.session_state.user_email = None
+                    st.session_state.profile_page = "main"
+                    st.query_params.clear()
+                    st.switch_page("app.py")
+                else:
+                    st.error("❌ 密码错误，无法注销")
+        with col_d2:
+            if st.button("取消", use_container_width=True):
+                st.session_state.profile_page = "main"
+                st.rerun()
+        st.stop()
 
 # ═══════════════════════════════════════
 # 个人中心主页
 # ═══════════════════════════════════════
-st.markdown("## 👤 个人中心")
+st.markdown(
+    "<h3 style='font-family:\"Noto Serif SC\",serif;color:#2C2C2C;margin:6px 0 12px;'>"
+    "👤 个人中心</h3>", unsafe_allow_html=True)
+
+initial = (st.session_state.user_email or "?").strip()[0].upper()
 
 c1, c2 = st.columns(2)
 with c1:
-    st.markdown("#### 用户信息")
-    st.markdown(f"📧 **邮箱**：{st.session_state.user_email}")
+    # 用户信息卡
+    st.markdown(f"""
+    <div style="background:#FFF;border:1px solid #E5E0D8;border-radius:12px;
+                padding:20px;box-shadow:0 4px 16px rgba(44,44,44,.05);margin-bottom:16px;">
+        <div style='text-align:center;'>
+            <div style='display:inline-flex;align-items:center;justify-content:center;
+                        width:64px;height:64px;border-radius:50%;background:#C43D3D;color:#fff;
+                        font-size:28px;font-weight:700;box-shadow:0 4px 14px rgba(196,61,61,.25);
+                        margin-bottom:10px;'>{initial}</div>
+            <div style='font-weight:600;color:#2C2C2C;'>用户信息</div>
+            <div style='color:#8C8C8C;font-size:14px;margin:6px 0;'>📧 {st.session_state.user_email}</div>
+        </div>
+    </div>""", unsafe_allow_html=True)
     if st.button("🔑 修改密码", use_container_width=True):
         st.session_state.profile_page = "password"; st.rerun()
     if st.button("🚪 退出登录", use_container_width=True):
         st.session_state.remembered_email = st.session_state.user_email
         st.session_state.user_id = None; st.session_state.user_email = None
         st.query_params.clear(); st.switch_page("app.py")
+    if st.button("⚠️ 注销账户", use_container_width=True):
+        st.session_state.profile_page = "delete"
+        st.session_state.pop("recharge_selection", None)
+        st.switch_page("pages/3_个人中心.py")
 
 with c2:
-    st.markdown("#### 💰 当前余额")
-    st.markdown(f"<h1 style='color:#C43D3D;font-size:48px;'>{balance}</h1>", unsafe_allow_html=True)
+    # 余额卡
+    st.markdown(f"""
+    <div style="background:#FFF;border:1px solid #E5E0D8;border-radius:12px;
+                padding:20px;box-shadow:0 4px 16px rgba(44,44,44,.05);margin-bottom:16px;
+                border-top:3px solid #D4AF37;">
+        <div style='color:#8C8C8C;font-size:14px;'>💰 当前余额</div>
+        <div style='display:flex;align-items:baseline;gap:8px;margin:4px 0;'>
+            <span style='font-size:48px;font-weight:700;color:#C43D3D;
+                    font-family:\"Noto Serif SC\",serif;'>{balance}</span>
+            <span style='color:#8C8C8C;'>次</span></div>
+        <div style='color:#B0AAA0;font-size:13px;margin-bottom:6px;'>1 次 = 1 次取名生成</div>
+    </div>""", unsafe_allow_html=True)
     if st.button("⚡ 立即充值", type="primary", use_container_width=True):
         st.session_state.profile_page = "recharge"; st.rerun()
     with st.expander("📄 充值记录"):
-        for r in get_recharge_records(supabase, uid)[:20]:
-            st.markdown(f"`{(r.get('created_at') or '')[:16]}` +{r['amount']}次 (¥{r['money']})")
+        recs = get_recharge_records(supabase, uid)[:20]
+        if recs:
+            for r in recs:
+                st.markdown(f"`{(r.get('created_at') or '')[:16]}` +{r['amount']}次 (¥{r['money']})")
+        else:
+            st.caption("暂无充值记录")
     with st.expander("📄 消费记录"):
-        for r in get_consumption_records(supabase, uid)[:20]:
-            amt = r['amount']; t = (r.get('created_at') or '')[:16]
-            st.markdown(f"`{t}` {'🔴'+str(amt)+'次' if amt>0 else '🟢'+str(amt)+'次'} ({r.get('consumption_type','')})")
+        cons = get_consumption_records(supabase, uid)[:20]
+        if cons:
+            for r in cons:
+                amt = r['amount']; t = (r.get('created_at') or '')[:16]
+                st.markdown(f"`{t}` {'🔴'+str(amt)+'次' if amt>0 else '🟢'+str(amt)+'次'} ({r.get('consumption_type','')})")
+        else:
+            st.caption("暂无消费记录")

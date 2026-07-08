@@ -7,6 +7,10 @@ from database.operations import get_user_sessions, get_candidate_names, get_user
 
 st.set_page_config(page_title="历史记录", page_icon="📋", layout="wide")
 
+# ── 注入新中式主题 ──
+from ui.theme import apply_theme, render_topnav
+apply_theme()
+
 # 移除左侧栏（该页不需要）
 st.markdown("""
 <style>
@@ -36,22 +40,21 @@ if not st.session_state.get('user_id'):
     st.warning("请先登录"); st.page_link("app.py", label="去登录", icon="🔑"); st.stop()
 
 balance = get_user_balance(supabase, st.session_state.user_id)
-cols = st.columns([2, 1, 1, 2, 1, 1])
-with cols[0]: st.markdown("### 📛 智能取名系统")
-with cols[1]: st.page_link("pages/1_取名主页.py", label="取名主页")
-with cols[2]: st.markdown("##### ✅ 历史记录")
-with cols[3]: st.markdown(f"<h4 style='text-align:right'>💰 余额：{balance}次</h4>", unsafe_allow_html=True)
-with cols[4]: st.page_link("pages/3_个人中心.py", label="👤 个人中心")
-with cols[5]:
-    if st.button("🚪 退出"):
-        st.session_state.remembered_email = st.session_state.user_email
-        st.session_state.user_id = None; st.session_state.user_email = None
-        st.query_params.clear(); st.switch_page("app.py")
-st.markdown("---")
+if render_topnav("history", balance, st.session_state.user_email):
+    st.session_state.remembered_email = st.session_state.user_email
+    st.session_state.user_id = None; st.session_state.user_email = None
+    st.query_params.clear(); st.switch_page("app.py")
 
-st.markdown("## 📋 取名历史记录")
-search = st.text_input("🔍 搜索姓氏或名字...")
-show_fav = st.checkbox("⭐ 仅看收藏")
+st.markdown(
+    "<h3 style='font-family:\"Noto Serif SC\",serif;color:#2C2C2C;margin:6px 0 12px;'>"
+    "📋 取名历史记录</h3>", unsafe_allow_html=True)
+
+_scol, _fcol = st.columns([4, 1])
+with _scol:
+    search = st.text_input("🔍 搜索姓氏或名字...", label_visibility="collapsed",
+                           placeholder="搜索姓氏或名字...")
+with _fcol:
+    show_fav = st.checkbox("⭐ 仅看收藏")
 
 sessions = get_user_sessions(supabase, st.session_state.user_id)
 if not sessions:
@@ -59,20 +62,44 @@ if not sessions:
 
 st.caption(f"共 {len(sessions)} 条")
 for s in sessions:
-    sid = s['session_id']; surname = s.get('surname','')
+    sid = s['session_id']
+    surname = s.get('surname', '')
     created = (s.get('created_at') or '')[:16]
-    status = "✅" if s.get('is_satisfied') else "⏳"
-    gender_icon = "👦" if s.get('gender')=="男孩" else "👧"
-    if search and search not in surname: continue
+    gender = s.get('gender', '')
+    name_len = s.get('name_length', '')
+    birth = (s.get('birth_date') or '')[:10]
+
+    if search and search not in surname:
+        continue
+
     names = get_candidate_names(supabase, sid)
-    if show_fav: names = [n for n in names if n.get('is_favorite')]
-    if show_fav and not names: continue
-    preview = " · ".join([n.get('name_text','') for n in names[:3]])
-    with st.expander(f"{status} {created}  {gender_icon} {surname}姓  {preview}"):
+    if show_fav:
+        names = [n for n in names if n.get('is_favorite')]
+    if show_fav and not names:
+        continue
+
+    # ── 标签：日期 + 姓氏 + 性别 + 字数 + 出生日期 ──
+    label_parts = [created, f"{surname}姓"]
+    if gender:
+        label_parts.append("👦" if gender == "男孩" else "👧")
+    if name_len:
+        label_parts.append(name_len)
+    if birth:
+        label_parts.append(birth)
+    label = "  |  ".join(label_parts)
+
+    with st.expander(label):
         for n in names:
             fav = n.get('is_favorite', False)
-            c1, c2, c3 = st.columns([3, 1, 1])
-            c1.markdown(f"- {n.get('full_name',n.get('name_text',''))}（评分{n.get('score','')}）{n.get('meaning','')}")
-            if c2.button("⭐" if fav else "☆", key=f"fav_{sid}_{n.get('id',0)}"):
-                supabase.table("candidate_names").update({"is_favorite": not fav}).eq("id", n['id']).execute()
+            c1, c2 = st.columns([5, 1])
+            full = n.get('full_name', n.get('name_text',''))
+            c1.markdown(
+                f"<span class='gn-name' style='font-size:17px;'>{full}</span>"
+                f"&nbsp;&nbsp;<span class='gn-tag gn-tag-gray'>评分 {n.get('score','')}</span>"
+                f"&nbsp;{n.get('meaning','')}", unsafe_allow_html=True)
+            if c2.button("⭐" if fav else "☆", key=f"fav_{sid}_{n.get('id',0)}",
+                         help="收藏 / 取消收藏"):
+                supabase.table("candidate_names") \
+                    .update({"is_favorite": not fav}) \
+                    .eq("id", n['id']).execute()
                 st.rerun()

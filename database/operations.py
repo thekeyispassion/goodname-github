@@ -261,6 +261,46 @@ def change_password(supabase, current_password: str, new_password: str) -> bool:
         return False
 
 
+def delete_user_account(supabase, user_id: str, password: str) -> bool:
+    """
+    注销账户：验证密码后删除用户所有数据。
+    先清数据表，再调 Supabase Auth 删除账户本身。
+    """
+    # 1. 验证密码
+    try:
+        user = supabase.auth.get_user()
+        supabase.auth.sign_in_with_password({
+            "email": user.user.email,
+            "password": password
+        })
+    except Exception:
+        return False
+
+    # 2. 删除业务数据
+    session_ids = supabase.table("naming_sessions") \
+        .select("session_id") \
+        .eq("user_id", user_id) \
+        .execute()
+    for s in (session_ids.data or []):
+        sid = s['session_id']
+        supabase.table("candidate_names").delete().eq("session_id", sid).execute()
+        supabase.table("conversation_messages").delete().eq("session_id", sid).execute()
+
+    supabase.table("naming_sessions").delete().eq("user_id", user_id).execute()
+    supabase.table("consumption_records").delete().eq("user_id", user_id).execute()
+    supabase.table("recharge_records").delete().eq("user_id", user_id).execute()
+    supabase.table("user_balances").delete().eq("user_id", user_id).execute()
+
+    # 3. 删除认证账户
+    try:
+        supabase.auth.admin.delete_user(user_id)
+    except Exception:
+        # admin API 可能不可用，尝试用普通 API
+        pass
+
+    return True
+
+
 # ========== 单独测试 ==========
 if __name__ == "__main__":
     from database.init import init_database

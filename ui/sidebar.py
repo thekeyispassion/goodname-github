@@ -26,11 +26,17 @@ def render_sidebar():
         3. 如果是修改模式，清除旧会话，重新生成
         4. 标记 info_submitted = True，通知 app.py "可以开始生成了"
     """
-    st.markdown("## 📝 取名信息采集")
-    st.markdown("---")
+    st.markdown(
+        "<div style='margin-bottom:6px;'>"
+        "<h3 style='margin:0;color:#2C2C2C;font-family:\"Noto Serif SC\",serif;'>📝 宝宝信息</h3>"
+        "<p style='color:#8C8C8C;font-size:13px;margin:4px 0 0;'>填写以下信息，AI 将为您智能取名</p>"
+        "</div><hr style='border-color:#E5E0D8;margin:12px 0;'>",
+        unsafe_allow_html=True)
 
-    # ———————————————————— 基础信息区 ————————————————————
-    st.markdown("### 基础信息")
+    # ── 基础信息区 ──
+    st.markdown(
+        "<div style='font-weight:600;color:#C43D3D;font-size:15px;margin-bottom:8px;'>"
+        "▎基础信息</div>", unsafe_allow_html=True)
 
     # ---- 姓氏输入框 ----
     # st.text_input 生成一个文本框
@@ -83,9 +89,8 @@ def render_sidebar():
         key="input_name_length"
     )
 
-    # ———————————————————— 补充信息（选填） ————————————————————
-    # st.expander 是"可折叠区域"，默认收起来，点才展开
-    with st.expander("📌 更多偏好"):
+    # ── 补充信息（选填） ──
+    with st.expander("📌 是否有其他需求？"):
         preferences = st.text_area(
             "寓意偏好",
             placeholder="如：希望孩子聪明智慧、健康平安、事业有成",
@@ -104,14 +109,11 @@ def render_sidebar():
             key="input_cultural_prefs"
         )
 
-    st.markdown("---")
+    st.markdown("<hr style='border-color:#E5E0D8;margin:14px 0;'>", unsafe_allow_html=True)
 
-    # ———————————————————— 确定按钮 ————————————————————
-    # st.button 生成一个可点击的按钮
-    # type="primary" 让按钮高亮（蓝色）
-    # use_container_width=True 让按钮宽度和侧边栏一样宽
+    # ── 确定按钮 ──
     clicked = st.button(
-        "✨ 开始取名",
+        "🎯 确定 / 开始取名",
         type="primary",
         use_container_width=True
     )
