@@ -1,106 +1,62 @@
 """
-数据库初始化模块
+数据库初始化模块（难度2 → Supabase 版本）
 
-作用：创建 SQLite 数据库文件和三张核心表。
-只要运行一次，表就会自动创建（如果不存在的话）。
+作用：连接 Supabase 云数据库，返回客户端对象。
+Supabase 的表需要在网页后台的 SQL Editor 中手动创建，
+建表语句见同目录下的 supabase_schema.sql。
 """
-import sqlite3
 import os
-
-# 数据库文件路径（默认在项目根目录）
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "goodname.db")
+from supabase import create_client
 
 
-def init_database(db_path=None):
+def _load_env():
     """
-    创建数据库和所有表（如果表不存在）。
+    从 .env 文件读取配置（和 llm/client.py 一样的逻辑）。
+    因为 Streamlit 不会自动加载 .env 文件。
+    """
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    env_vars = {}
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if '=' in line and not line.startswith('#'):
+                    key, value = line.split('=', 1)
+                    env_vars[key.strip()] = value.strip().strip('"').strip("'")
+    return env_vars
+
+
+def init_database():
+    """
+    连接 Supabase，返回客户端对象。
 
     用法：
-        conn = init_database()          # 默认文件 goodname.db
-        conn = init_database("test.db") # 指定文件名
+        supabase = init_database()
+        # 然后用 supabase 操作数据库
 
-    返回：
-        数据库连接对象（conn），后续所有操作都用这个对象。
+    如果 SUPABASE_URL 或 SUPABASE_KEY 没配置，返回 None。
     """
-    if db_path is None:
-        db_path = DB_PATH
+    # 先从 .env 文件读
+    env = _load_env()
+    url = env.get('SUPABASE_URL', '')
+    key = env.get('SUPABASE_KEY', '')
 
-    # check_same_thread=False：允许 Streamlit 在不同线程中复用同一个连接
-    conn = sqlite3.connect(db_path, check_same_thread=False)
-    conn.row_factory = sqlite3.Row  # 让查询结果能用 row['字段名'] 访问
+    # 如果 .env 没有，再尝试环境变量
+    if not url:
+        url = os.environ.get("SUPABASE_URL", "")
+    if not key:
+        key = os.environ.get("SUPABASE_KEY", "")
 
-    cursor = conn.cursor()
+    if not url or not key:
+        print("⚠️ SUPABASE_URL 或 SUPABASE_KEY 未配置，请在 .env 中设置")
+        return None
 
-    # 使用 executescript 一次性执行多条 SQL 语句
-    cursor.executescript("""
-        -- ========== 表1：取名会话表 ==========
-        -- 用户每次填写表单并点击"确定"，就创建一条会话记录。
-        CREATE TABLE IF NOT EXISTS naming_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL UNIQUE,
-            surname TEXT NOT NULL,
-            gender TEXT NOT NULL CHECK(gender IN ('男孩', '女孩')),
-            birth_date TEXT,
-            birth_time TEXT,
-            name_length TEXT,
-            preferences TEXT,
-            avoid_words TEXT,
-            family_info TEXT,
-            cultural_prefs TEXT,
-            status TEXT DEFAULT 'active' CHECK(status IN ('active', 'completed')),
-            is_satisfied BOOLEAN DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-
-        -- ========== 表2：候选名字表 ==========
-        -- AI每生成一个名字，这里就多一条记录。
-        CREATE TABLE IF NOT EXISTS candidate_names (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL REFERENCES naming_sessions(session_id),
-            round_number INTEGER NOT NULL,
-            name_text TEXT NOT NULL,
-            full_name TEXT NOT NULL,
-            meaning TEXT,
-            cultural_ref TEXT,
-            wuxing TEXT,
-            sound_rhythm TEXT,
-            score INTEGER CHECK(score >= 1 AND score <= 100),
-            is_favorite BOOLEAN DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-
-        -- ========== 表3：对话消息表 ==========
-        -- 用户和AI的每一句对话都存下来，刷新页面后可以恢复。
-        CREATE TABLE IF NOT EXISTS conversation_messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL REFERENCES naming_sessions(session_id),
-            role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
-            content TEXT NOT NULL,
-            round_number INTEGER DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
-
-    conn.commit()
-    print(f"✅ 数据库初始化成功：{db_path}")
-    return conn
-
-
-# ========== 单独测试 ==========
-if __name__ == "__main__":
-    conn = init_database()
-
-    # 查看有哪些表
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = cursor.fetchall()
-
-    print("📋 已创建的表：")
-    for t in tables:
-        # 查询每个表的行数
-        cursor.execute(f"SELECT COUNT(*) FROM {t['name']}")
-        count = cursor.fetchone()[0]
-        print(f"   - {t['name']} ({count} 条记录)")
-
-    conn.close()
+    try:
+        supabase = create_client(url, key)
+        # 测试连接是否有效（做个简单查询）
+        supabase.table("naming_sessions").select("id").limit(1).execute()
+        print("✅ Supabase 连接成功")
+        return supabase
+    except Exception as e:
+        print(f"❌ Supabase 连接失败：{e}")
+        return None
