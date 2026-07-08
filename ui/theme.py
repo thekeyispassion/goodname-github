@@ -144,6 +144,24 @@ section[data-testid="stSidebar"] .stMarkdown h3 {{
     background:{PRIMARY}; color:#fff; font-size:26px; font-weight:700;
     box-shadow:0 8px 20px rgba(196,61,61,.30);
 }}
+
+/* 登录卡片内组件透明——输入框不自带白底 */
+.gn-auth-card .stTextInput > div,
+.gn-auth-card .stTextInput > div > div,
+.gn-auth-card [data-testid="stTextInput"],
+.gn-auth-card [data-baseweb="input"],
+.gn-auth-card [data-baseweb="input"] > div,
+.gn-auth-card [data-testid="stTextInput"] label + div,
+.gn-auth-card input {{
+    background: #FFFFFF !important;
+}}
+.gn-auth-card .stButton > button[kind="secondary"] {{
+    background: #FFFFFF !important;
+}}
+/* 确保卡片本身纯白 */
+.gn-auth-card {{
+    background: #FFFFFF !important;
+}}
 </style>
 """
 
