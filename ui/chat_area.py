@@ -61,7 +61,7 @@ def render_chat_area():
     else:
         # st.chat_input 固定在页面底部
         # 用户按回车就触发
-        user_input = st.chat_input("输入修改意见（如：想要更文雅一点的名字）")
+        user_input = st.chat_input("说出您的修改意见…（如：想要更文雅一点的名字）")
 
     if user_input and user_input.strip():
         # 把用户写的消息存入 session_state

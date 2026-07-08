@@ -88,15 +88,32 @@ with st.sidebar:
 
 # ── 主区域 ──
 if not st.session_state.info_submitted:
+    # 欢迎区：AI 头像（吉祥物）+ 对话气泡，引导用户填写左侧信息
     st.markdown("""
-    <div style='text-align:center; padding-top:70px;'>
+    <div style='display:flex; align-items:flex-start; justify-content:center;
+                gap:16px; padding:70px 20px 0;'>
+        <!-- AI 吉祥物头像 -->
         <div style='display:inline-flex; align-items:center; justify-content:center;
-                    width:84px; height:84px; border-radius:22px;
-                    background:#C43D3D; color:#fff; font-size:44px;
-                    box-shadow:0 10px 28px rgba(196,61,61,.28); margin-bottom:22px;'>印</div>
-        <h2 style='font-family:"Noto Serif SC",serif; color:#2C2C2C; margin:0;'>智能取名系统</h2>
-        <p style='color:#8C8C8C; margin:10px 0 4px;'>请在左侧填写信息，点击「开始取名」</p>
-        <p style='color:#B0AAA0; font-size:13px;'>每次生成消耗 1 次余额</p>
+                    width:72px; height:72px; border-radius:50%;
+                    background:linear-gradient(135deg,#C43D3D 0%,#A52F2F 100%);
+                    color:#fff; font-size:38px; flex-shrink:0;
+                    box-shadow:0 8px 22px rgba(196,61,61,.30);'>🦌</div>
+        <!-- 对话气泡 -->
+        <div style='position:relative; max-width:420px; background:#FFFFFF;
+                    border:1px solid #E5E0D8; border-radius:16px; padding:16px 20px;
+                    box-shadow:0 4px 16px rgba(44,44,44,.06);'>
+            <span style='position:absolute; left:-8px; top:18px; width:0; height:0;
+                        border-top:8px solid transparent; border-bottom:8px solid transparent;
+                        border-right:10px solid #FFFFFF;'></span>
+            <p style='margin:0; color:#2C2C2C; font-size:16px; line-height:1.7;'>
+                你好！我是你的<strong style='color:#C43D3D;'>取名助手</strong> 🌿<br/>
+                请在左侧填写宝宝信息，点击「确定 / 开始取名」，<br/>
+                我将为您智能生成候选名字及完整解析。
+            </p>
+            <p style='margin:10px 0 0; color:#B0AAA0; font-size:13px;'>
+                每次生成消耗 1 次余额
+            </p>
+        </div>
     </div>""", unsafe_allow_html=True)
 else:
     render_chat_area()

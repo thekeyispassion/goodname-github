@@ -35,36 +35,36 @@ def render_login_page(supabase):
         remember = st.checkbox("记住我", value=True,
                                help="勾选后刷新页面不会丢失登录状态")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("登 录", type="primary", use_container_width=True):
-            if not email or not password:
-                st.error("❌ 请填写邮箱和密码")
-                return
+    # 登录按钮：独占一行的全宽朱砂红按钮
+    if st.button("登 录", type="primary", use_container_width=True):
+        if not email or not password:
+            st.error("❌ 请填写邮箱和密码")
+            return
 
-            try:
-                result = supabase.auth.sign_in_with_password({
-                    "email": email, "password": password
-                })
-                _clean_old_session()
-                st.session_state.user_id = result.user.id
-                st.session_state.user_email = result.user.email
-                if "remembered_email" in st.session_state:
-                    del st.session_state.remembered_email
-                if remember:
-                    st.query_params["uid"] = result.user.id
-                    st.query_params["email"] = result.user.email
-                else:
-                    st.query_params.clear()
-                st.success("✅ 登录成功！")
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ 登录失败：{e}")
-
-    with col2:
-        if st.button("没有账号？去注册", use_container_width=True):
-            st.session_state.auth_page = "register"
+        try:
+            result = supabase.auth.sign_in_with_password({
+                "email": email, "password": password
+            })
+            _clean_old_session()
+            st.session_state.user_id = result.user.id
+            st.session_state.user_email = result.user.email
+            if "remembered_email" in st.session_state:
+                del st.session_state.remembered_email
+            if remember:
+                st.query_params["uid"] = result.user.id
+                st.query_params["email"] = result.user.email
+            else:
+                st.query_params.clear()
+            st.success("✅ 登录成功！")
             st.rerun()
+        except Exception as e:
+            st.error(f"❌ 登录失败：{e}")
+
+    # 注册引导：文字风格链接按钮（居中，点击跳注册页）
+    if st.button("还没有账号？立即注册", use_container_width=True,
+                 key="goto_register", type="secondary"):
+        st.session_state.auth_page = "register"
+        st.rerun()
 
     st.markdown("<hr style='border-color:#E5E0D8; margin:20px 0;'>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#8C8C8C; font-size:13px;'>🔧 测试模式</p>",

@@ -155,55 +155,66 @@ def apply_theme():
 
 def render_topnav(current: str, balance: int, email: str) -> bool:
     """
-    统一顶部导航栏（登录/注册页除外）。
+    统一顶部导航栏（登录/注册页除外）——单条 64px 栏，对齐 v2.0 规范。
+
+    布局：[品牌 logo+名称]  [取名主页][历史记录][个人中心]  [余额徽章]  [退出登录]
+    当前所在页 tab 高亮朱砂红；个人中心当前页时文字前带首字母头像。
 
     返回：True 表示用户点了「退出登录」
+    ⚠️ 仅布局，不碰任何业务逻辑。Streamlit 自带顶栏保留不动。
     """
     initial = (email or "?").strip()[0].upper()
 
-    # 品牌栏
-    st.markdown(f"""
-    <div style='display:flex;align-items:center;justify-content:space-between;
-                background:{CARD};border:1px solid {BORDER};border-radius:14px;
-                box-shadow:0 4px 16px rgba(44,44,44,.05);padding:10px 18px;margin-bottom:12px;'>
-      <div style='display:flex;align-items:center;gap:10px;font-family:"Noto Serif SC",serif;
-                  font-weight:700;font-size:20px;color:{INK};'>
-        <span style='display:inline-flex;align-items:center;justify-content:center;
-                    width:34px;height:34px;border-radius:8px;background:{PRIMARY};color:#fff;
-                    font-size:18px;box-shadow:0 3px 10px rgba(196,61,61,.30);'>印</span>
-        <span>智能取名系统</span>
-      </div>
-      <div style='display:flex;align-items:center;gap:14px;'>
-        <span style='background:#FBF3E0;color:{PRIMARY};border:1px solid {GOLD};
-                    border-radius:999px;padding:5px 14px;font-weight:600;font-size:14px;'>
-          💰 余额 {balance} 次
-        </span>
-        <span style='width:32px;height:32px;border-radius:50%;background:{PRIMARY};color:#fff;
-                    font-weight:700;display:inline-flex;align-items:center;justify-content:center;
-                    font-size:14px;box-shadow:0 2px 8px rgba(196,61,61,.25);'>
-          {initial}
-        </span>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+    # —— 单条导航栏：一行 columns 拼出全部内容（品牌/三个tab/余额/退出）——
+    # c1 品牌 | c2 主页 | c3 历史 | c4 个人中心 | c5 余额 | c6 退出
+    c1, c2, c3, c4, c5, c6 = st.columns([2.4, 1, 1, 1.2, 1.4, 1])
 
-    # 导航 tab 行
-    def _tab(active, label_when_active, page, label):
-        if active:
-            st.markdown(
-                f"<div style='text-align:center;font-weight:700;color:{PRIMARY};"
-                f"padding:8px 0;border-bottom:2px solid {PRIMARY};'>{label_when_active}</div>",
-                unsafe_allow_html=True)
-        else:
-            st.page_link(page, label=label, use_container_width=True)
+    with c1:
+        st.markdown(
+            f"<div style='display:flex;align-items:center;gap:10px;"
+            f"font-family:\"Noto Serif SC\",serif;font-weight:700;font-size:19px;color:{INK};'>"
+            f"<span style='display:inline-flex;align-items:center;justify-content:center;"
+            f"width:34px;height:34px;border-radius:8px;background:{PRIMARY};color:#fff;"
+            f"font-size:18px;box-shadow:0 3px 10px rgba(196,61,61,.30);'>印</span>"
+            f"<span>智能取名系统</span></div>", unsafe_allow_html=True)
 
-    n1, n2, n3, n4 = st.columns([1, 1, 1, 1.3])
-    with n1: _tab(current == "home", "✦ 取名主页", "pages/1_取名主页.py", "取名主页")
-    with n2: _tab(current == "history", "✦ 历史记录", "pages/2_历史记录.py", "历史记录")
-    with n3: _tab(current == "profile", "✦ 个人中心", "pages/3_个人中心.py", "个人中心")
-    with n4:
-        if st.button("🚪 退出登录", use_container_width=True, key=f"logout_{current}"):
+    def _tab(col, active, page, label, label_active, with_avatar=False):
+        with col:
+            if active:
+                avatar = ""
+                if with_avatar:
+                    avatar = (f"<span style='display:inline-flex;align-items:center;"
+                              f"justify-content:center;width:24px;height:24px;border-radius:50%;"
+                              f"background:{PRIMARY};color:#fff;font-size:12px;font-weight:700;"
+                              f"margin-right:6px;'>{initial}</span>")
+                st.markdown(
+                    f"<div style='display:flex;align-items:center;justify-content:center;"
+                    f"font-weight:700;color:{PRIMARY};padding:8px 0;"
+                    f"border-bottom:2px solid {PRIMARY};'>{avatar}{label_active}</div>",
+                    unsafe_allow_html=True)
+            else:
+                st.page_link(page, label=label, use_container_width=True)
+
+    _tab(c2, current == "home", "pages/1_取名主页.py", "取名主页", "取名主页")
+    _tab(c3, current == "history", "pages/2_历史记录.py", "历史记录", "历史记录")
+    _tab(c4, current == "profile", "pages/3_个人中心.py", "个人中心", "个人中心", with_avatar=True)
+
+    with c5:
+        st.markdown(
+            f"<div style='display:flex;align-items:center;justify-content:center;'>"
+            f"<span style='background:#FBF3E0;color:{PRIMARY};border:1px solid {GOLD};"
+            f"border-radius:999px;padding:6px 14px;font-weight:600;font-size:14px;'>"
+            f"💰 余额 {balance} 次</span></div>", unsafe_allow_html=True)
+
+    with c6:
+        if st.button("退出登录", use_container_width=True, key=f"logout_{current}",
+                     help="退出当前账户"):
             return True
+
+    # 导航栏底部 1px 浅灰分割线
+    st.markdown(
+        f"<div style='border-bottom:1px solid {BORDER};margin:-6px 0 14px;'></div>",
+        unsafe_allow_html=True)
     return False
 
 

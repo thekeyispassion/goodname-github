@@ -78,15 +78,13 @@ for s in sessions:
     if show_fav and not names:
         continue
 
-    # ── 标签：日期 + 姓氏 + 性别 + 字数 + 出生日期 ──
-    label_parts = [created, f"{surname}姓"]
-    if gender:
-        label_parts.append("👦" if gender == "男孩" else "👧")
-    if name_len:
-        label_parts.append(name_len)
-    if birth:
-        label_parts.append(birth)
-    label = "  |  ".join(label_parts)
+    # ── 标签：时间戳　姓氏·性别　名字预览（含收藏徽章）──
+    gender_text = f"· {gender}" if gender else ""
+    preview_names = " · ".join(
+        [n.get('full_name', n.get('name_text', '')) for n in names[:3] if n]
+    )
+    fav_badge = "  ⭐收藏" if any(n.get('is_favorite') for n in names) else ""
+    label = f"{created}　{surname}姓 {gender_text}　{preview_names}{fav_badge}"
 
     with st.expander(label):
         for n in names:

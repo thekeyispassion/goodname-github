@@ -120,13 +120,25 @@ if sub == 'password':
             st.session_state.profile_page = "main"; st.rerun()
     st.stop()
 
-    if sub == 'delete':
-        st.markdown("<h3 style='color:#C62828;font-family:\"Noto Serif SC\",serif;'>⚠️ 注销账户</h3>",
-                    unsafe_allow_html=True)
-        st.warning("注销后所有取名记录、余额、充值记录将被**永久删除**，无法恢复。")
-
+# ═══════════════════════════════════════
+# 子页面：注销账户
+# ═══════════════════════════════════════
+if sub == 'delete':
+    _lp, _cp, _rp = st.columns([1, 1.3, 1])
+    with _cp:
+        st.markdown(
+            "<div style='text-align:center;margin-bottom:8px;'>"
+            "<h3 style='color:#C43D3D;font-family:\"Noto Serif SC\",serif;'>⚠️ 注销账户</h3></div>",
+            unsafe_allow_html=True)
+        if st.button("← 返回个人中心", use_container_width=True):
+            st.session_state.profile_page = "main"; st.rerun()
+        st.markdown(
+            "<div style='background:#FFF5F5;border:1px solid #C43D3D;border-radius:12px;"
+            "padding:14px 18px;margin:12px 0;color:#2C2C2C;font-size:14px;'>"
+            "注销后所有取名记录、余额、充值记录将被<strong style='color:#C43D3D'>永久删除</strong>，无法恢复。"
+            "</div>", unsafe_allow_html=True)
         pwd = st.text_input("请输入密码确认", type="password",
-                           placeholder="输入密码以确认注销")
+                            placeholder="输入密码以确认注销")
         with st.expander("📌 注销须知"):
             st.markdown("""
             - 你的所有取名记录将被删除
@@ -134,13 +146,11 @@ if sub == 'password':
             - 账户信息将从系统中移除
             - 此操作**不可撤销**
             """)
-
         col_d1, col_d2 = st.columns(2)
         with col_d1:
             if st.button("确认注销", type="primary", use_container_width=True):
                 if not pwd:
-                    st.error("❌ 请输入密码确认")
-                    st.stop()
+                    st.error("❌ 请输入密码确认"); st.stop()
                 if delete_user_account(supabase, uid, pwd):
                     st.success("✅ 账户已注销")
                     st.session_state.user_id = None
@@ -152,9 +162,8 @@ if sub == 'password':
                     st.error("❌ 密码错误，无法注销")
         with col_d2:
             if st.button("取消", use_container_width=True):
-                st.session_state.profile_page = "main"
-                st.rerun()
-        st.stop()
+                st.session_state.profile_page = "main"; st.rerun()
+    st.stop()
 
 # ═══════════════════════════════════════
 # 个人中心主页
@@ -180,16 +189,6 @@ with c1:
             <div style='color:#8C8C8C;font-size:14px;margin:6px 0;'>📧 {st.session_state.user_email}</div>
         </div>
     </div>""", unsafe_allow_html=True)
-    if st.button("🔑 修改密码", use_container_width=True):
-        st.session_state.profile_page = "password"; st.rerun()
-    if st.button("🚪 退出登录", use_container_width=True):
-        st.session_state.remembered_email = st.session_state.user_email
-        st.session_state.user_id = None; st.session_state.user_email = None
-        st.query_params.clear(); st.switch_page("app.py")
-    if st.button("⚠️ 注销账户", use_container_width=True):
-        st.session_state.profile_page = "delete"
-        st.session_state.pop("recharge_selection", None)
-        st.switch_page("pages/3_个人中心.py")
 
 with c2:
     # 余额卡
@@ -221,3 +220,23 @@ with c2:
                 st.markdown(f"`{t}` {'🔴'+str(amt)+'次' if amt>0 else '🟢'+str(amt)+'次'} ({r.get('consumption_type','')})")
         else:
             st.caption("暂无消费记录")
+
+# ── 操作卡网格：修改密码 / 退出登录 / 注销账户（一行三张）──
+st.markdown(
+    "<div style='font-weight:600;color:#2C2C2C;margin:8px 0 10px;'>账户操作</div>",
+    unsafe_allow_html=True)
+_a1, _a2, _a3 = st.columns(3)
+with _a1:
+    if st.button("🔑 修改密码", use_container_width=True, key="act_password",
+                 help="修改账户登录密码"):
+        st.session_state.profile_page = "password"; st.rerun()
+with _a2:
+    if st.button("🚪 退出登录", use_container_width=True, key="act_logout",
+                 help="退出当前账户"):
+        st.session_state.remembered_email = st.session_state.user_email
+        st.session_state.user_id = None; st.session_state.user_email = None
+        st.query_params.clear(); st.switch_page("app.py")
+with _a3:
+    if st.button("⚠️ 注销账户", use_container_width=True, key="act_delete",
+                 help="永久删除账户及所有数据"):
+        st.session_state.profile_page = "delete"; st.rerun()

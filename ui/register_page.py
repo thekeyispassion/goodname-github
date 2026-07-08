@@ -82,5 +82,6 @@ def render_register_page(supabase):
                 else:
                     st.error(f"❌ 注册失败：{e}")
 
-        if st.button("已有账号？去登录", use_container_width=True):
+        if st.button("已有账号？返回登录", use_container_width=True,
+                     key="goto_login", type="secondary"):
             st.session_state.auth_page = "login"; st.rerun()
