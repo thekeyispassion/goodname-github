@@ -276,18 +276,20 @@ def delete_user_account(supabase, user_id: str, password: str) -> bool:
     except Exception:
         return False
 
-    # 2. 删除业务数据
+    # 2. 删除业务数据（先子表后父表，避免外键冲突）
     session_ids = supabase.table("naming_sessions") \
         .select("session_id") \
         .eq("user_id", user_id) \
         .execute()
     for s in (session_ids.data or []):
         sid = s['session_id']
+        # 先删所有子表（引用了 naming_sessions 的表）
+        supabase.table("consumption_records").delete().eq("session_id", sid).execute()
         supabase.table("candidate_names").delete().eq("session_id", sid).execute()
         supabase.table("conversation_messages").delete().eq("session_id", sid).execute()
 
+    # 再删父表
     supabase.table("naming_sessions").delete().eq("user_id", user_id).execute()
-    supabase.table("consumption_records").delete().eq("user_id", user_id).execute()
     supabase.table("recharge_records").delete().eq("user_id", user_id).execute()
     supabase.table("user_balances").delete().eq("user_id", user_id).execute()
 
