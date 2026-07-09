@@ -2,6 +2,7 @@
 登录页面（v2.0 - 单卡片包裹所有元素）
 """
 import streamlit as st
+from ui.theme import auto_error
 
 
 def _clean_old_session():
@@ -42,30 +43,32 @@ def render_login_page(supabase):
         with col1:
             if st.button("登 录", type="primary", use_container_width=True):
                 if not email or not password:
-                    st.error("❌ 请填写邮箱和密码")
-                    return
-                try:
-                    result = supabase.auth.sign_in_with_password({
-                        "email": email, "password": password
-                    })
-                    _clean_old_session()
-                    st.session_state.user_id = result.user.id
-                    st.session_state.user_email = result.user.email
-                    # 保存认证 token 到 URL 参数（刷新后恢复 RLS）
-                    if result.session:
-                        st.query_params["_atok"] = result.session.access_token
-                        st.query_params["_rtok"] = result.session.refresh_token
-                    if "remembered_email" in st.session_state:
-                        del st.session_state.remembered_email
-                    if remember:
-                        st.query_params["uid"] = result.user.id
-                        st.query_params["email"] = result.user.email
-                    else:
-                        st.query_params.clear()
-                    st.success("✅ 登录成功！")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ 登录失败：{e}")
+                    auto_error("请填写邮箱和密码")
+                else:
+                    try:
+                        result = supabase.auth.sign_in_with_password({
+                            "email": email, "password": password
+                        })
+                        _clean_old_session()
+                        st.session_state.user_id = result.user.id
+                        st.session_state.user_email = result.user.email
+                        if result.session:
+                            st.query_params["_atok"] = result.session.access_token
+                            st.query_params["_rtok"] = result.session.refresh_token
+                        if "remembered_email" in st.session_state:
+                            del st.session_state.remembered_email
+                        if remember:
+                            st.query_params["uid"] = result.user.id
+                            st.query_params["email"] = result.user.email
+                        else:
+                            st.query_params.clear()
+                        st.success("✅ 登录成功！")
+                        st.rerun()
+                    except Exception as e:
+                        err = str(e)
+                        if "Invalid login credentials" in err:
+                            err = "邮箱或密码错误"
+                        st.error(f"❌ 登录失败：{err}")
 
         with col2:
             if st.button("没有账号？去注册", use_container_width=True):
@@ -92,7 +95,10 @@ def render_login_page(supabase):
                         "email": test_email, "password": test_pwd
                     })
                 except Exception as e2:
-                    st.error(f"测试账号登录失败：{e2}")
+                    err2 = str(e2)
+                    if "Invalid login credentials" in err2:
+                        err2 = "邮箱或密码错误"
+                    st.error(f"测试账号登录失败：{err2}")
                     st.stop()
 
             _clean_old_session()

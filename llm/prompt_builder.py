@@ -293,6 +293,53 @@ def build_evaluate_prompt(name_text: str) -> list:
     ]
 
 
+def build_single_refine_prompt(
+    original_name: dict, user_feedback: str, user_input: dict, refine_history: list = None
+) -> list:
+    """
+    针对单个名字的修改意见，构建提示词让 AI 优化这一个名字。
+
+    参数：
+        original_name: 当前名字的完整信息（含 name/full_name/meaning/cultural_ref/wuxing/sound_rhythm/score）
+        user_feedback: 用户写的修改意见
+        user_input: 原始取名需求（surname/gender/name_length 等）
+        refine_history: 当前名字的多轮修改历史 [{"role":"user","content":"..."}, {"role":"assistant","content":"..."}]
+
+    返回 DeepSeek API 消息列表。
+    """
+    surname = user_input.get('surname', '')
+    gender = user_input.get('gender', '')
+    name_length = user_input.get('name_length', '')
+
+    system_prompt = f"""你是一位取名大师。用户对名字「{original_name.get('full_name','')}」有修改意见，请根据意见优化，只返回一个修改后的名字。
+
+要求：
+1. 保持姓氏「{surname}」不变
+2. 性别「{gender}」，需注意男女风格
+3. 名字字数要求「{name_length}」
+4. 只输出一个名字，JSON 格式（不要数组）：
+{{"name":"某","full_name":"{surname}某","meaning":"字义","cultural_ref":"出处","wuxing":"金木水火土","sound_rhythm":"音韵分析","score":90}}"""
+
+    # 当前名字信息
+    name_info = f"""当前名字：{original_name.get('full_name','')}
+字义：{original_name.get('meaning','')}
+出处：{original_name.get('cultural_ref','')}
+五行：{original_name.get('wuxing','')}
+音韵：{original_name.get('sound_rhythm','')}"""
+
+    user_content = f"{name_info}\n\n修改意见：{user_feedback}\n\n请只返回修改后的一个名字（JSON对象格式）。"
+
+    messages = [{"role": "system", "content": system_prompt}]
+
+    # 多轮修改历史
+    if refine_history:
+        for h in refine_history:
+            messages.append(h)
+
+    messages.append({"role": "user", "content": user_content})
+    return messages
+
+
 # ========== 单独测试 ==========
 if __name__ == "__main__":
     # 测试字数解析

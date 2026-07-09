@@ -10,6 +10,7 @@
 - 所有数据通过 st.session_state 传递给 app.py
 """
 import streamlit as st
+from ui.theme import auto_error
 
 
 def render_sidebar():
@@ -122,7 +123,7 @@ def render_sidebar():
     if clicked:
         # 【校验1】姓氏不能为空
         if not surname.strip():
-            st.error("❌ 请填写姓氏")
+            auto_error("请填写姓氏")
             return False
 
         # 【校验2】避讳字里不能有姓氏
@@ -130,12 +131,12 @@ def render_sidebar():
         # 如果避讳字里包含姓氏，相当于"不能用自己家的字"，不合逻辑
         # avoid_words.split(',') 把"刚,强,龙"变成 ["刚","强","龙"]
         if avoid_words and surname.strip() in [w.strip() for w in avoid_words.split(',')]:
-            st.error(f"❌ 避讳字不能包含姓氏「{surname.strip()}」")
+            auto_error(f"避讳字不能包含姓氏「{surname.strip()}」")
             return False
 
         # 【校验3】字数必须选
         if not name_length:
-            st.error("❌ 请选择名字总字数")
+            auto_error("请选择名字总字数")
             return False
 
         # 【通过校验】收集所有表单数据，存到 session_state

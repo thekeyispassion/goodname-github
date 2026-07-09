@@ -12,7 +12,7 @@ from database.operations import (
 st.set_page_config(page_title="个人中心", page_icon="👤", layout="wide")
 
 # ── 注入新中式主题 ──
-from ui.theme import apply_theme, render_topnav, card
+from ui.theme import apply_theme, render_topnav, card, auto_error
 apply_theme()
 
 # 移除左侧栏（该页不需要）
@@ -135,16 +135,18 @@ if sub == 'password':
                             placeholder="请设置新密码")
         confirm = st.text_input("确认新密码", type="password", placeholder="请再次输入新密码")
         if st.button("确认修改", type="primary", use_container_width=True):
-            if not old or not new or not confirm: st.error("请填所有字段"); st.stop()
-            if new != confirm: st.error("两次密码不一致"); st.stop()
-            if len(new) < 8: st.error("密码至少8位"); st.stop()
-            if new == old: st.error("新密码不能与旧密码相同"); st.stop()
-            if change_password(supabase, old, new):
-                st.success("✅ 修改成功！请重新登录")
-                st.session_state.user_id = None; st.session_state.user_email = None
-                st.session_state.profile_page = "main"; st.switch_page("app.py")
-            else:
-                st.error("❌ 当前密码错误")
+            valid = True
+            if not old or not new or not confirm: auto_error("请填所有字段"); valid = False
+            elif new != confirm: auto_error("两次密码不一致"); valid = False
+            elif len(new) < 8: auto_error("密码至少8位"); valid = False
+            elif new == old: auto_error("新密码不能与旧密码相同"); valid = False
+            if valid:
+                if change_password(supabase, old, new):
+                    st.success("✅ 修改成功！请重新登录")
+                    st.session_state.user_id = None; st.session_state.user_email = None
+                    st.session_state.profile_page = "main"; st.switch_page("app.py")
+                else:
+                    st.error("❌ 当前密码错误")
         if st.button("取消", use_container_width=True):
             st.session_state.profile_page = "main"; st.rerun()
     st.stop()
@@ -179,8 +181,8 @@ if sub == 'delete':
         with col_d1:
             if st.button("确认注销", type="primary", use_container_width=True):
                 if not pwd:
-                    st.error("❌ 请输入密码确认"); st.stop()
-                if delete_user_account(supabase, uid, pwd):
+                    auto_error("请输入密码确认")
+                elif delete_user_account(supabase, uid, pwd):
                     st.success("✅ 账户已注销")
                     st.session_state.user_id = None
                     st.session_state.user_email = None

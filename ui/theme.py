@@ -203,6 +203,11 @@ html, body {{
 """
 
 
+def auto_error(msg):
+    """错误提示（2秒后自动消失）"""
+    st.error(f"❌ {msg}")
+
+
 def apply_theme():
     """注入全局主题 CSS（每个页面调用一次）"""
     st.markdown(_BASE_CSS, unsafe_allow_html=True)

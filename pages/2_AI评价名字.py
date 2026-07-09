@@ -12,7 +12,7 @@ from llm.prompt_builder import build_evaluate_prompt
 st.set_page_config(page_title="AI评价名字", page_icon="🤖", layout="wide")
 
 # ── 注入新中式主题 ──
-from ui.theme import apply_theme, render_topnav
+from ui.theme import apply_theme, render_topnav, auto_error
 apply_theme()
 
 # 移除左侧栏
@@ -82,12 +82,7 @@ with col_btn:
 # ── 评价逻辑 ──
 if eval_clicked:
     if not name_to_eval or not name_to_eval.strip():
-        st.error("❌ 请输入要评价的名字")
-    elif get_user_balance(supabase, uid) < 1:
-        st.error("❌ 余额不足，请先充值")
-        if st.button("⚡ 去充值", type="primary"):
-            st.session_state.profile_page = "recharge"
-            st.switch_page("pages/4_个人中心.py")
+        auto_error("请输入要评价的名字")
     else:
         st.session_state.eval_processing = True
         st.session_state.eval_name = name_to_eval.strip()
@@ -96,43 +91,47 @@ if eval_clicked:
 # ── 处理评价请求 ──
 if st.session_state.get('eval_processing', False):
     name_text = st.session_state.get('eval_name', '')
-    with st.spinner(f"🤔 AI 正在分析「{name_text}」..."):
-        deduct_balance(supabase, uid, None, "AI评价")
-        msgs = build_evaluate_prompt(name_text)
-        resp = call_deepseek(msgs)
-        if resp:
-            import json, re
-            # 评价接口返回单个 JSON 对象，非数组
-            result = {}
-            try:
-                # 直接解析
-                result = json.loads(resp)
-            except json.JSONDecodeError:
-                # 尝试提取 JSON 代码块
-                m = re.search(r'```(?:json)?\s*\n?(\{.*?\})\n?```', resp, re.DOTALL)
-                if m:
-                    try:
-                        result = json.loads(m.group(1))
-                    except json.JSONDecodeError:
-                        pass
-                # 尝试模糊匹配花括号
-                if not result:
-                    m = re.search(r'\{[^{}]*\}', resp)
+    # 余额校验
+    if get_user_balance(supabase, uid) < 1:
+        st.error("❌ 余额不足，请先充值")
+        if st.button("⚡ 去充值", type="primary"):
+            st.session_state.eval_processing = False
+            st.session_state.profile_page = "recharge"
+            st.switch_page("pages/4_个人中心.py")
+    else:
+        with st.spinner(f"🤔 AI 正在分析「{name_text}」..."):
+            deduct_balance(supabase, uid, None, "AI评价")
+            msgs = build_evaluate_prompt(name_text)
+            resp = call_deepseek(msgs)
+            if resp:
+                import json, re
+                result = {}
+                try:
+                    result = json.loads(resp)
+                except json.JSONDecodeError:
+                    m = re.search(r'```(?:json)?\s*\n?(\{.*?\})\n?```', resp, re.DOTALL)
                     if m:
                         try:
-                            result = json.loads(m.group(0))
+                            result = json.loads(m.group(1))
                         except json.JSONDecodeError:
-                            result = {"overall_score": 0, "comment": resp}
-            if not isinstance(result, dict):
-                result = {"overall_score": 0, "comment": resp}
-            save_evaluation(supabase, uid, name_text, result)
-            st.session_state.eval_result = result
-            st.session_state.eval_done_name = name_text
-        else:
-            st.error("❌ AI 暂不可用，请稍后重试")
-            st.session_state.eval_result = None
-    st.session_state.eval_processing = False
-    st.rerun()
+                            pass
+                    if not result:
+                        m = re.search(r'\{[^{}]*\}', resp)
+                        if m:
+                            try:
+                                result = json.loads(m.group(0))
+                            except json.JSONDecodeError:
+                                result = {"overall_score": 0, "comment": resp}
+                if not isinstance(result, dict):
+                    result = {"overall_score": 0, "comment": resp}
+                save_evaluation(supabase, uid, name_text, result)
+                st.session_state.eval_result = result
+                st.session_state.eval_done_name = name_text
+            else:
+                st.error("❌ AI 暂不可用，请稍后重试")
+                st.session_state.eval_result = None
+        st.session_state.eval_processing = False
+        st.rerun()
 
 # ── 展示评价结果 ──
 if st.session_state.get('eval_result'):

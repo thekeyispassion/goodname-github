@@ -192,7 +192,7 @@ def _display_names(names_data, msg_idx=0):
                 save_user_note(st.session_state.supabase, name_id, new_note)
                 name['user_note'] = new_note
 
-        # ———— 右边：收藏按钮（功能预留） ————
+        # ———— 右边：收藏按钮 ————
         with col_action:
             is_fav = name.get('is_favorite', False)
             btn_label = "⭐" if is_fav else "☆"
