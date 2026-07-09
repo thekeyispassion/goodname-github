@@ -137,7 +137,7 @@ if st.session_state.info_submitted and st.session_state.session_id is None:
             st.session_state.info_submitted = False
             st.session_state.is_processing = False
             st.session_state.profile_page = "recharge"
-            st.switch_page("pages/3_个人中心.py")
+            st.switch_page("pages/4_个人中心.py")
         st.stop()
 
     with st.spinner("🤔 正在取名..."):
@@ -178,7 +178,7 @@ if st.session_state.get('need_process', False):
         if st.button("⚡ 去充值"):
             st.session_state.is_processing = False
             st.session_state.profile_page = "recharge"
-            st.switch_page("pages/3_个人中心.py")
+            st.switch_page("pages/4_个人中心.py")
         st.stop()
 
     fb = st.session_state.messages[-1]["content"] if st.session_state.messages else ""

@@ -769,3 +769,85 @@ graph TD
 
 这样设计的原因：每个候选名字已经有一条独立的记录，评分和备注是这条记录的属性，直接加字段即可，无需新建表。查询时一次读取即可拿到名字所有信息（含评分和备注），减少数据库查询次数。
 
+---
+
+六、AI评价名字功能
+
+1.功能概述
+
+用户可以输入一个已有的名字（自己想的或朋友推荐的），让AI对该名字进行专业评价和打分。AI会从字义、音韵、文化出处、五行适配、寓意深度等多个维度进行综合评分，并给出详细的文字解析。每次评价消耗1次生成次数。
+
+2.业务流程
+
+用户登录后，通过顶部导航栏进入"AI评价名字"页面。页面中央为名字输入框，用户输入任意中文名字后点击"评价"按钮。系统首先校验次数余额是否充足，若不足则弹窗引导充值；若充足则扣除1次次数，调用大语言模型对名字进行多维度评析，结果以卡片形式展示。用户可连续输入不同名字进行评价，每次评价独立展示，互不覆盖。
+
+```mermaid
+graph TD
+    classDef startEnd fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px;
+    classDef userAction fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef sysAction fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef error fill:#ffebee,stroke:#c62828,stroke-width:2px;
+
+    Start([用户进入AI评价页面]):::startEnd
+    Start --> Input[在输入框中填写名字]:::userAction
+    Input --> Click[点击评价按钮]:::userAction
+    Click --> CheckBalance{检查剩余次数<br>是否 ≥ 1?}:::decision
+    CheckBalance -->|否| Insufficient[弹窗提示余额不足<br>引导跳转充值页]:::error
+    Insufficient --> Recharge[跳转余额与充值页]:::startEnd
+    CheckBalance -->|是| Deduct[扣除1次生成次数]:::sysAction
+    Deduct --> CallAI[调用AI评价名字<br>多维度分析]:::sysAction
+    CallAI --> ShowResult[展示评价结果卡片<br>含总分+各维度评分+文字解析]:::startEnd
+    ShowResult --> Continue{继续评价?}:::decision
+    Continue -->|是| Input
+    Continue -->|否| End([结束]):::startEnd
+```
+
+3.UI布局
+
+```
+一张高保真网页UI设计图，展示AI评价名字功能页面。
+
+页面顶部为统一导航栏（品牌Logo + 取名主页/AI评价/历史记录/个人中心 + 余额 + 退出），"AI评价"为当前页高亮（朱砂红）。
+
+主内容区域居中布局：
+- 顶部标题"🤖 AI 评价名字"，下方灰色说明文字"输入一个名字，让AI为您深度解析"
+- 名字输入框：大尺寸输入框，占位符"请输入要评价的名字，如：子轩"，右侧为朱砂红色"评价"按钮
+- 下方为评价结果展示区域：
+  - 初始态：显示引导图标和提示"输入名字后点击评价，AI将为您多维度分析"
+  - 加载态：显示加载动画"🤔 AI 正在分析..."
+  - 结果态：卡片展示，包含名字大字（衬线体）、总分圆环、各维度条形图（字义/音韵/文化/五行/寓意，每项0~100分）、AI综合评语
+
+整体风格为新中式极简，暖白背景，纯白卡片，朱砂红+淡金点缀。
+```
+
+4.页面功能说明表
+
+| 字段 | 说明 |
+|:---|:---|
+| **页面名称** | AI评价名字 |
+| **路由** | `/evaluate` |
+| **页面用途** | 用户输入名字，AI进行多维度评价和打分 |
+| **主要组件** | 名字输入框、评价按钮、结果卡片（总分圆环+维度条形图+评语）、评价历史列表 |
+| **可见条件** | 必须登录；若未登录，路由守卫自动跳转 `/login` |
+| **关联状态** | 初始态（等待输入）、加载态（AI分析中）、成功态（展示评价结果）、异常态（余额不足/AI不可用） |
+
+5.数据存储
+
+评价记录存储在新表 `name_evaluations` 中：
+
+| 字段 | 类型 | 说明 |
+|:---|:---|:---|
+| `id` | BIGSERIAL | 主键 |
+| `user_id` | UUID | 关联用户 |
+| `name_text` | TEXT | 被评价的名字 |
+| `meaning_score` | INTEGER | 字义评分 0~100 |
+| `sound_score` | INTEGER | 音韵评分 0~100 |
+| `culture_score` | INTEGER | 文化评分 0~100 |
+| `wuxing_score` | INTEGER | 五行评分 0~100 |
+| `overall_score` | INTEGER | 综合评分 0~100 |
+| `comment` | TEXT | AI综合评语 |
+| `created_at` | TIMESTAMPTZ | 评价时间 |
+
+每次评价独立存储，用户可在页面下方查看自己的评价历史。
+

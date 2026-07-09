@@ -261,6 +261,38 @@ def build_refine_prompt(user_input: dict, history: list, user_feedback: str) -> 
     return messages
 
 
+def build_evaluate_prompt(name_text: str) -> list:
+    """
+    构建 AI 评价名字的提示词。
+
+    参数：
+        name_text: 用户输入的要评价的名字
+
+    返回 DeepSeek API 消息列表。
+    """
+    system_prompt = """你是一位精通中国传统文化的取名大师，精通《周易》、五行八卦、唐诗宋词。
+你的任务是对用户提供的名字进行专业、全面的评价。
+
+请从以下维度评分（每项0~100分）：
+1. meaning_score（字义）：名字中每个字的含义是否美好、积极向上
+2. sound_score（音韵）：读音是否悦耳动听、抑扬顿挫、朗朗上口
+3. culture_score（文化）：是否有典籍出处、文化底蕴、历史渊源
+4. wuxing_score（五行）：五行属性搭配是否合理、是否有益于命理
+5. overall_score（综合寓意）：整体寓意深度、美好程度
+
+同时给出综合评语（comment），80~150字，语言优美、有文化感。
+
+请严格按JSON格式输出，不要加markdown代码块标记：
+{"name":"被评价的名字","meaning_score":85,"sound_score":90,"culture_score":75,"wuxing_score":80,"overall_score":83,"comment":"综合评语..."}"""
+
+    user_content = f"请评价这个名字：{name_text}"
+
+    return [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_content}
+    ]
+
+
 # ========== 单独测试 ==========
 if __name__ == "__main__":
     # 测试字数解析

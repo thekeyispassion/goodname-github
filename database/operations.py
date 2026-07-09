@@ -305,6 +305,42 @@ def get_consumption_records(supabase, user_id: str) -> list:
     return result.data
 
 
+# ========== AI 评价名字（v2.0 扩展） ==========
+
+def save_evaluation(supabase, user_id: str, name_text: str, result: dict) -> bool:
+    """
+    保存 AI 评价结果到 name_evaluations 表。
+
+    参数：
+        supabase: Supabase 客户端
+        user_id: 当前用户 ID
+        name_text: 被评价的名字
+        result: AI 返回的评价结果字典（含各维度评分和评语）
+    """
+    supabase.table("name_evaluations").insert({
+        "user_id": user_id,
+        "name_text": name_text,
+        "meaning_score": max(0, min(100, result.get('meaning_score', 0) or 0)),
+        "sound_score": max(0, min(100, result.get('sound_score', 0) or 0)),
+        "culture_score": max(0, min(100, result.get('culture_score', 0) or 0)),
+        "wuxing_score": max(0, min(100, result.get('wuxing_score', 0) or 0)),
+        "overall_score": max(0, min(100, result.get('overall_score', 0) or 0)),
+        "comment": result.get('comment', '') or '',
+    }).execute()
+    return True
+
+
+def get_evaluation_history(supabase, user_id: str, limit: int = 20) -> list:
+    """查询用户的评价历史，按时间倒序。"""
+    result = supabase.table("name_evaluations") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .order("created_at", desc=True) \
+        .limit(limit) \
+        .execute()
+    return result.data or []
+
+
 def change_password(supabase, current_password: str, new_password: str) -> bool:
     """修改密码。"""
     try:

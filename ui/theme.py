@@ -220,9 +220,9 @@ def render_topnav(current: str, balance: int, email: str) -> bool:
     """
     initial = (email or "?").strip()[0].upper()
 
-    # —— 单条导航栏：一行 columns 拼出全部内容（品牌/三个tab/余额/退出）——
-    # c1 品牌 | c2 主页 | c3 历史 | c4 个人中心 | c5 余额 | c6 退出
-    c1, c2, c3, c4, c5, c6 = st.columns([2.4, 1, 1, 1.2, 1.4, 1])
+    # —— 单条导航栏：一行 columns 拼出全部内容（品牌/四个tab/余额/退出）——
+    # c1 品牌 | c2 主页 | c3 AI评价 | c4 历史 | c5 个人中心 | c6 余额 | c7 退出
+    c1, c2, c3, c4, c5, c6, c7 = st.columns([2.0, 0.9, 0.9, 0.9, 1.1, 1.3, 0.9])
 
     with c1:
         st.markdown(
@@ -251,17 +251,18 @@ def render_topnav(current: str, balance: int, email: str) -> bool:
                 st.page_link(page, label=label, use_container_width=True)
 
     _tab(c2, current == "home", "pages/1_取名主页.py", "取名主页", "取名主页")
-    _tab(c3, current == "history", "pages/2_历史记录.py", "历史记录", "历史记录")
-    _tab(c4, current == "profile", "pages/3_个人中心.py", "个人中心", "个人中心", with_avatar=True)
+    _tab(c3, current == "evaluate", "pages/2_AI评价名字.py", "AI评价", "AI评价")
+    _tab(c4, current == "history", "pages/3_历史记录.py", "历史记录", "历史记录")
+    _tab(c5, current == "profile", "pages/4_个人中心.py", "个人中心", "个人中心", with_avatar=True)
 
-    with c5:
+    with c6:
         st.markdown(
             f"<div style='display:flex;align-items:center;justify-content:center;'>"
             f"<span style='background:#FBF3E0;color:{PRIMARY};border:1px solid {GOLD};"
             f"border-radius:999px;padding:6px 14px;font-weight:600;font-size:14px;'>"
             f"💰 余额 {balance} 次</span></div>", unsafe_allow_html=True)
 
-    with c6:
+    with c7:
         if st.button("退出登录", use_container_width=True, key=f"logout_{current}",
                      help="退出当前账户"):
             return True
