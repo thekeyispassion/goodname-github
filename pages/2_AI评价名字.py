@@ -26,6 +26,15 @@ if 'supabase' not in st.session_state:
     st.session_state.supabase = _init_db()
 supabase = st.session_state.supabase
 
+# 从 URL 参数恢复 Supabase 认证（刷新后 RLS 需要 auth.uid()）
+_atok = st.query_params.get("_atok")
+_rtok = st.query_params.get("_rtok")
+if _atok:
+    try:
+        supabase.auth.set_session(_atok, _rtok)
+    except Exception:
+        pass
+
 # 从 URL 参数恢复登录
 if not st.session_state.get('user_id'):
     p = st.query_params
@@ -88,7 +97,7 @@ if eval_clicked:
 if st.session_state.get('eval_processing', False):
     name_text = st.session_state.get('eval_name', '')
     with st.spinner(f"🤔 AI 正在分析「{name_text}」..."):
-        deduct_balance(supabase, uid, None, "evaluate")
+        deduct_balance(supabase, uid, None, "AI评价")
         msgs = build_evaluate_prompt(name_text)
         resp = call_deepseek(msgs)
         if resp:
@@ -189,18 +198,23 @@ if history:
     for h in history:
         score = h.get('overall_score', 0) or 0
         sc = "#43A047" if score >= 85 else ("#D4AF37" if score >= 70 else "#FB8C00")
-        st.markdown(f"""
-        <div style="background:#FFF;border:1px solid #E5E0D8;border-radius:10px;
-                    padding:12px 16px;box-shadow:0 2px 8px rgba(44,44,44,.04);
-                    margin-bottom:8px;display:flex;align-items:center;gap:14px;">
-            <span class='gn-name' style='font-size:18px;'>{h.get('name_text','')}</span>
-            <span style='display:inline-flex;align-items:center;justify-content:center;
-                        width:38px;height:38px;border-radius:50%;background:{sc};color:#fff;
-                        font-weight:700;font-size:16px;'>{score}</span>
-            <span style='color:#8C8C8C;font-size:13px;flex:1;'>
-                {h.get('comment','')[:60]}{'…' if len(h.get('comment','') or '')>60 else ''}</span>
-            <span style='color:#B0AAA0;font-size:12px;'>{(h.get('created_at') or '')[:16]}</span>
-        </div>
-        """, unsafe_allow_html=True)
+        name_text = h.get('name_text', '')
+        created = (h.get('created_at') or '')[:16]
+        # 紧凑标签：名字 + 评分 + 时间
+        label = f"{name_text}  |  {score}分  |  {created}"
+        with st.expander(label):
+            st.markdown(f"""
+            <div style='display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;
+                        font-size:14px;color:#2C2C2C;margin-bottom:12px;'>
+                <div>📖 字义：<b>{h.get('meaning_score',0) or 0}</b> 分</div>
+                <div>🎵 音韵：<b>{h.get('sound_score',0) or 0}</b> 分</div>
+                <div>📚 文化：<b>{h.get('culture_score',0) or 0}</b> 分</div>
+                <div>🔥 五行：<b>{h.get('wuxing_score',0) or 0}</b> 分</div>
+            </div>
+            <div style='padding:12px 16px;background:#F9F7F4;border-radius:8px;
+                        color:#2C2C2C;font-size:14px;line-height:1.8;'>
+                📝 {h.get('comment','暂无评语')}
+            </div>
+            """, unsafe_allow_html=True)
 else:
     st.caption("暂无评价记录，输入名字开始评价吧")

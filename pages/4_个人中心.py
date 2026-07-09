@@ -26,6 +26,15 @@ if 'supabase' not in st.session_state:
     st.session_state.supabase = _init_db()
 supabase = st.session_state.supabase
 
+# 从 URL 参数恢复 Supabase 认证（刷新后 RLS 需要 auth.uid()）
+_atok = st.query_params.get("_atok")
+_rtok = st.query_params.get("_rtok")
+if _atok:
+    try:
+        supabase.auth.set_session(_atok, _rtok)
+    except Exception:
+        pass
+
 # 从 URL 参数恢复登录
 if not st.session_state.get('user_id'):
     p = st.query_params
@@ -101,7 +110,9 @@ if sub == 'recharge':
         if cons:
             for r in cons:
                 amt = r['amount']; t = (r.get('created_at') or '')[:16]
-                st.markdown(f"`{t}` {'🔴'+str(amt)+'次' if amt>0 else '🟢'+str(amt)+'次'} ({r.get('consumption_type','')})")
+                ct = r.get('consumption_type','')
+                ct_label = {'generate': '🤖 智能取名', 'refine': '🔄 修改优化', 'evaluate': '📝 评价名字', 'AI评价': '📝 评价名字'}.get(ct, ct)
+                st.markdown(f"`{t}` {'🔴'+str(amt)+'次' if amt>0 else '🟢'+str(amt)+'次'} ({ct_label})")
         else:
             st.caption("暂无消费记录")
     st.stop()

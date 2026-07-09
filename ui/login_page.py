@@ -7,7 +7,8 @@ import streamlit as st
 def _clean_old_session():
     for k in ['messages', 'round_number', 'session_id',
               'info_submitted', 'need_process', 'is_processing',
-              'user_input', 'profile_page']:
+              'user_input', 'profile_page',
+              'eval_result', 'eval_done_name', 'eval_processing', 'eval_name']:
         if k in st.session_state:
             del st.session_state[k]
 
@@ -50,6 +51,10 @@ def render_login_page(supabase):
                     _clean_old_session()
                     st.session_state.user_id = result.user.id
                     st.session_state.user_email = result.user.email
+                    # 保存认证 token 到 URL 参数（刷新后恢复 RLS）
+                    if result.session:
+                        st.query_params["_atok"] = result.session.access_token
+                        st.query_params["_rtok"] = result.session.refresh_token
                     if "remembered_email" in st.session_state:
                         del st.session_state.remembered_email
                     if remember:
@@ -93,6 +98,9 @@ def render_login_page(supabase):
             _clean_old_session()
             st.session_state.user_id = result.user.id
             st.session_state.user_email = result.user.email
+            if result.session:
+                st.query_params["_atok"] = result.session.access_token
+                st.query_params["_rtok"] = result.session.refresh_token
             st.query_params["uid"] = result.user.id
             st.query_params["email"] = result.user.email
             st.rerun()

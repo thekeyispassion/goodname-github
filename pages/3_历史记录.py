@@ -22,6 +22,15 @@ if 'supabase' not in st.session_state:
     st.session_state.supabase = _init_db()
 supabase = st.session_state.supabase
 
+# 从 URL 参数恢复 Supabase 认证（刷新后 RLS 需要 auth.uid()）
+_atok = st.query_params.get("_atok")
+_rtok = st.query_params.get("_rtok")
+if _atok:
+    try:
+        supabase.auth.set_session(_atok, _rtok)
+    except Exception:
+        pass
+
 # 从 URL 参数恢复登录
 if not st.session_state.get('user_id'):
     p = st.query_params
@@ -108,77 +117,80 @@ for s in sessions:
     if not names:
         continue
 
-    # ── 标签：时间 | 性别 | 姓氏 ──
+    # ── 会话级标签：时间 | 性别 | 姓氏 ──
     gender_icon = "👦" if gender == "男孩" else "👧" if gender else ""
     gender_label = f"{gender_icon} {gender}" if gender else ""
     label = f"{created}  |  {gender_label}  |  {surname}姓"
 
-    # 记住展开状态（点收藏按钮后 expander 不折叠）
+    # 记住展开状态
     if sid not in st.session_state.history_expanded:
         st.session_state.history_expanded[sid] = False
-    # 点击收藏 star 后强制保持展开
     if st.session_state.get('_fav_just_clicked'):
         st.session_state.history_expanded[sid] = True
 
     with st.expander(label, expanded=st.session_state.history_expanded[sid]):
-        # 用户手动展开时记录
         st.session_state.history_expanded[sid] = True
         for n in names:
             name_id = n.get('id')
+            full = n.get('full_name', n.get('name_text', ''))
             fav = n.get('is_favorite', False)
-            # ── 行1：名字信息 + 收藏 ──
-            c1, c2 = st.columns([5, 1])
-            full = n.get('full_name', n.get('name_text',''))
-            parts = [
-                f"<span class='gn-name' style='font-size:17px;'>{full}</span>",
-                f"<span class='gn-tag gn-tag-gray'>AI评分 {n.get('score','')}</span>",
-            ]
+            # 每个名字一个可展开标签
+            # 标签行：名字 + AI评分 + 用户评分徽章
             rating_html = _rating_badge(n.get('user_rating'))
-            if rating_html:
-                parts.append(rating_html)
-            note_text = n.get('user_note', '')
-            if note_text:
-                parts.append(
-                    f"<span style='color:#8C8C8C;font-size:13px;font-style:italic;'>"
-                    f"「{note_text}」</span>")
-            if n.get('meaning', ''):
-                parts.append(str(n.get('meaning', '')))
-            c1.markdown("&nbsp;".join(parts), unsafe_allow_html=True)
-            if c2.button("⭐" if fav else "☆", key=f"fav_{sid}_{n.get('id',0)}",
-                         help="收藏 / 取消收藏"):
-                supabase.table("candidate_names") \
-                    .update({"is_favorite": not fav}) \
-                    .eq("id", n['id']).execute()
-                st.session_state._fav_just_clicked = True
-                st.session_state.history_expanded[sid] = True
-                st.rerun()
+            user_stars = f" {'⭐' * (n.get('user_rating') or 0)}" if n.get('user_rating') else ""
+            fav_mark = " ⭐收藏" if fav else ""
+            name_label = f"{full}  {n.get('score','')}分{user_stars}{fav_mark}"
 
-            # ── 行2：评分 + 备注（可在历史记录直接打分）──
-            if name_id:
-                cur_rating = n.get('user_rating') or 0
-                cur_note = n.get('user_note', '') or ''
-                sc1, sc2, sc3, sc4, sc5, nc = st.columns([0.6, 0.6, 0.6, 0.6, 0.6, 5])
-                for s_idx, s_col in enumerate([sc1, sc2, sc3, sc4, sc5]):
-                    with s_col:
-                        filled = s_idx < cur_rating
-                        lbl = "★" if filled else "☆"
-                        if st.button(lbl, key=f"hist_star_{name_id}_{s_idx}",
-                                     help=f"{s_idx+1} 星"):
-                            save_user_rating(supabase, name_id, s_idx + 1)
-                            n['user_rating'] = s_idx + 1
-                            st.session_state.history_expanded[sid] = True
+            with st.expander(name_label, expanded=False):
+                # ── 详细信息 ──
+                if n.get('meaning', ''):
+                    st.markdown(f"📖 *{n.get('meaning','')}*")
+                if n.get('cultural_ref', ''):
+                    st.markdown(f"📚 {n.get('cultural_ref','')}")
+                wuxing = n.get('wuxing', '')
+                sound = n.get('sound_rhythm', '')
+                if wuxing or sound:
+                    tags = ""
+                    if wuxing: tags += f"<span class='gn-tag'>🔥 五行：{wuxing}</span>"
+                    if sound: tags += f"<span class='gn-tag gn-tag-gray'>🎵 {sound}</span>"
+                    st.markdown(tags, unsafe_allow_html=True)
+
+                # ── 收藏按钮 ──
+                if st.button("⭐ 取消收藏" if fav else "☆ 收藏", key=f"fav_{sid}_{n.get('id',0)}",
+                             help="收藏 / 取消收藏"):
+                    supabase.table("candidate_names") \
+                        .update({"is_favorite": not fav}) \
+                        .eq("id", n['id']).execute()
+                    st.session_state._fav_just_clicked = True
+                    st.session_state.history_expanded[sid] = True
+                    st.rerun()
+
+                # ── 用户评分 + 备注 ──
+                if name_id:
+                    cur_rating = n.get('user_rating') or 0
+                    cur_note = n.get('user_note', '') or ''
+                    sc1, sc2, sc3, sc4, sc5, nc = st.columns([0.6, 0.6, 0.6, 0.6, 0.6, 5])
+                    for s_idx, s_col in enumerate([sc1, sc2, sc3, sc4, sc5]):
+                        with s_col:
+                            filled = s_idx < cur_rating
+                            lbl = "★" if filled else "☆"
+                            if st.button(lbl, key=f"hist_star_{name_id}_{s_idx}",
+                                         help=f"{s_idx+1} 星"):
+                                save_user_rating(supabase, name_id, s_idx + 1)
+                                n['user_rating'] = s_idx + 1
+                                st.session_state.history_expanded[sid] = True
+                                st.rerun()
+                    with nc:
+                        new_note = st.text_input(
+                            "备注", value=cur_note,
+                            key=f"hist_note_{name_id}",
+                            placeholder="写下你的评价…",
+                            label_visibility="collapsed"
+                        )
+                        if new_note != cur_note:
+                            save_user_note(supabase, name_id, new_note)
+                            n['user_note'] = new_note
                             st.rerun()
-                with nc:
-                    new_note = st.text_input(
-                        "备注", value=cur_note,
-                        key=f"hist_note_{name_id}",
-                        placeholder="写下你的评价…",
-                        label_visibility="collapsed"
-                    )
-                    if new_note != cur_note:
-                        save_user_note(supabase, name_id, new_note)
-                        n['user_note'] = new_note
-                        st.rerun()
 
 # 清理收藏点击标记
 if st.session_state.get('_fav_just_clicked'):

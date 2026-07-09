@@ -31,6 +31,15 @@ if 'supabase' not in st.session_state:
     st.session_state.supabase = _init_db()
 supabase = st.session_state.supabase
 
+# 从 URL 参数恢复 Supabase 认证（刷新后 RLS 需要 auth.uid()）
+_atok = st.query_params.get("_atok")
+_rtok = st.query_params.get("_rtok")
+if _atok:
+    try:
+        supabase.auth.set_session(_atok, _rtok)
+    except Exception:
+        pass
+
 # 从 URL 参数恢复登录
 if not st.session_state.get('user_id'):
     p = st.query_params

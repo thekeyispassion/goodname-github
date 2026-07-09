@@ -41,6 +41,15 @@ if supabase is None:
     st.error("⚠️ Supabase 未配置，请在 .env 中设置 SUPABASE_URL 和 SUPABASE_KEY")
     st.stop()
 
+# 从 URL 参数恢复 Supabase 认证（刷新后 RLS 需要 auth.uid()）
+_atok = st.query_params.get("_atok")
+_rtok = st.query_params.get("_rtok")
+if _atok:
+    try:
+        supabase.auth.set_session(_atok, _rtok)
+    except Exception:
+        pass
+
 # 从 URL 参数恢复登录
 if not st.session_state.user_id:
     params = st.query_params
