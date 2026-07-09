@@ -13,6 +13,7 @@
 """
 import streamlit as st
 from utils.parser import parse_ai_response
+from database.operations import save_user_rating, save_user_note
 
 
 def render_chat_area():
@@ -159,19 +160,53 @@ def _display_names(names_data, msg_idx=0):
                 st.markdown("<div style='margin-top:6px;'>" + "".join(tags) + "</div>",
                             unsafe_allow_html=True)
 
+        # ———— 用户评分与备注 ————
+        name_id = name.get('id')
+        if name_id:
+            current_rating = name.get('user_rating', None) or 0
+            current_note = name.get('user_note', '') or ''
+
+            star_key = f"star_{name_id}_{msg_idx}_{i}"
+            # 5 stars + label
+            c1, c2, c3, c4, c5, cl = st.columns([1, 1, 1, 1, 1, 3])
+            for s_idx, col in enumerate([c1, c2, c3, c4, c5]):
+                with col:
+                    is_filled = s_idx < current_rating
+                    label = "★" if is_filled else "☆"
+                    if st.button(label, key=f"{star_key}_{s_idx}",
+                                 help=f"{s_idx+1} 星"):
+                        save_user_rating(st.session_state.supabase, name_id, s_idx + 1)
+                        name['user_rating'] = s_idx + 1
+                        st.rerun()
+            with cl:
+                st.caption(f"{'⭐'*current_rating} {current_rating}分" if current_rating > 0 else "点击星星评分")
+
+            # 备注
+            new_note = st.text_input(
+                "备注", value=current_note,
+                key=f"note_{name_id}_{msg_idx}_{i}",
+                placeholder="写下你的评价…",
+                label_visibility="collapsed"
+            )
+            if new_note != current_note and name_id:
+                save_user_note(st.session_state.supabase, name_id, new_note)
+                name['user_note'] = new_note
+
         # ———— 右边：收藏按钮（功能预留） ————
         with col_action:
             is_fav = name.get('is_favorite', False)
             btn_label = "⭐" if is_fav else "☆"
-            st.button(
+            if st.button(
                 btn_label,
-                # key 的组成：fav + 消息序号 + 名字序号
-                # 比如第2条AI回复的第3个名字 → "fav_1_2"
-                # 这样确保每个按钮的 key 都是唯一的
                 key=f"fav_{msg_idx}_{i}",
-                help="收藏该名字（功能待完善）",
-                disabled=True  # 暂时禁用，后续再开发
-            )
+                help="收藏 / 取消收藏"):
+                supabase = st.session_state.get('supabase')
+                if supabase and name_id:
+                    supabase.table("candidate_names") \
+                        .update({"is_favorite": not is_fav}) \
+                        .eq("id", name_id).execute()
+                    name['is_favorite'] = not is_fav
+                    st.rerun()
 
         # 名字之间的分隔线
         st.divider()

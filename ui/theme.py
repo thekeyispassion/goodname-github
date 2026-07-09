@@ -114,6 +114,26 @@ section[data-testid="stSidebar"] .stMarkdown h3 {{
 ::-webkit-scrollbar-thumb {{ background: #d8d3cb; border-radius: 8px; }}
 ::-webkit-scrollbar-track {{ background: transparent; }}
 
+/* ============ 星级评分按钮（黄色星标，通过 title 含"星"匹配） ============ */
+button[title*="星"] {{
+    background: transparent !important;
+    border: none !important;
+    font-size: 22px !important;
+    padding: 0 2px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    height: 30px !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+    color: #D4AF37 !important;
+}}
+button[title*="星"]:hover {{
+    transform: scale(1.25);
+    color: #E8C547 !important;
+}}
+.gn-star-filled {{ color: {GOLD} !important; }}
+.gn-star-empty {{ color: #D5D5D5 !important; }}
+
 /* ============ 垂直滚动条（始终保留空间，非登录/注册页适用） ============ */
 html, body {{
     overflow-y: auto !important;

@@ -154,7 +154,11 @@ if st.session_state.info_submitted and st.session_state.session_id is None:
             if names:
                 names = _vl(names, st.session_state.user_input)
             save_message(supabase, sid, "assistant", resp, 1)
-            if names: save_names(supabase, sid, names, 1)
+            if names:
+                inserted = save_names(supabase, sid, names, 1) or []
+                for i, nd in enumerate(names):
+                    if i < len(inserted):
+                        nd['id'] = inserted[i]['id']
             st.session_state.messages.append({"role":"assistant","content": names if names else resp})
         else:
             st.error("❌ AI 暂不可用")
@@ -187,7 +191,11 @@ if st.session_state.get('need_process', False):
             names = parse_ai_response(resp)
             if names: names = _vl(names, st.session_state.user_input)
             save_message(supabase, sid, "assistant", resp, rn)
-            if names: save_names(supabase, sid, names, rn)
+            if names:
+                inserted = save_names(supabase, sid, names, rn) or []
+                for i, nd in enumerate(names):
+                    if i < len(inserted):
+                        nd['id'] = inserted[i]['id']
             st.session_state.messages.append({"role":"assistant","content": names if names else resp})
         else:
             st.error("❌ AI 暂不可用")

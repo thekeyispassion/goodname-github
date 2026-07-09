@@ -42,8 +42,11 @@ def create_session(supabase, user_input: dict, user_id: str = None) -> str:
     return session_id
 
 
-def save_names(supabase, session_id: str, names: list, round_number: int = 1):
-    """保存 AI 生成的一批候选名字到 Supabase。"""
+def save_names(supabase, session_id: str, names: list, round_number: int = 1) -> list:
+    """保存 AI 生成的一批候选名字到 Supabase。
+
+    返回：已插入的数据库记录列表（每条含 id 字段），用于前端跟踪评分。
+    """
     records = []
     for name_data in names:
         records.append({
@@ -58,8 +61,65 @@ def save_names(supabase, session_id: str, names: list, round_number: int = 1):
             'score': max(1, min(100, name_data.get('score') or 80)),
         })
 
-    result = supabase.table("candidate_names").insert(records).execute()
-    print(f"✅ 保存了 {len(records)} 个名字（第{round_number}轮）")
+    try:
+        result = supabase.table("candidate_names").insert(records).execute()
+        print(f"✅ 保存了 {len(records)} 个名字（第{round_number}轮）")
+        return result.data if result.data else []
+    except Exception as e:
+        print(f"❌ 保存名字失败（第{round_number}轮）：{e}")
+        return []
+
+
+# ========== 评价与打分（v2.0 扩展） ==========
+
+def save_user_rating(supabase, name_id: int, rating: int) -> bool:
+    """
+    保存用户对某个名字的评分（1~5 星）。
+
+    参数：
+        supabase: Supabase 客户端
+        name_id: candidate_names 表中的 id
+        rating: 用户评分（1~5），传 None 清除评分
+    """
+    if rating is not None:
+        rating = max(1, min(5, int(rating)))
+    supabase.table("candidate_names") \
+        .update({"user_rating": rating}) \
+        .eq("id", name_id) \
+        .execute()
+    return True
+
+
+def save_user_note(supabase, name_id: int, note: str) -> bool:
+    """
+    保存用户对某个名字的备注文字。
+
+    参数：
+        supabase: Supabase 客户端
+        name_id: candidate_names 表中的 id
+        note: 备注文字，传空字符串或 None 都会存为 None
+    """
+    note = note.strip() if note else None
+    supabase.table("candidate_names") \
+        .update({"user_note": note}) \
+        .eq("id", name_id) \
+        .execute()
+    return True
+
+
+def get_name_rating(supabase, name_id: int) -> dict:
+    """
+    查询某个名字的用户评分和备注。
+
+    返回：{"user_rating": 4, "user_note": "读音好听"} 或 None
+    """
+    result = supabase.table("candidate_names") \
+        .select("user_rating, user_note") \
+        .eq("id", name_id) \
+        .execute()
+    if result.data:
+        return result.data[0]
+    return {"user_rating": None, "user_note": None}
 
 
 def save_message(supabase, session_id: str, role: str, content: str, round_number: int = 1):
