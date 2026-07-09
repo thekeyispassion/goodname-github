@@ -86,6 +86,24 @@ if sub == 'recharge':
             add_balance(supabase, uid, amt, money, pay_method)
             st.success(f"✅ 充值成功！获得 {amt} 次"); st.balloons()
             st.session_state.profile_page = "main"; st.rerun()
+
+    # ── 充值记录与消费记录 ──
+    st.markdown("---")
+    with st.expander("📄 充值记录"):
+        recs = get_recharge_records(supabase, uid)[:20]
+        if recs:
+            for r in recs:
+                st.markdown(f"`{(r.get('created_at') or '')[:16]}` +{r['amount']}次 (¥{r['money']})")
+        else:
+            st.caption("暂无充值记录")
+    with st.expander("📄 消费记录"):
+        cons = get_consumption_records(supabase, uid)[:20]
+        if cons:
+            for r in cons:
+                amt = r['amount']; t = (r.get('created_at') or '')[:16]
+                st.markdown(f"`{t}` {'🔴'+str(amt)+'次' if amt>0 else '🟢'+str(amt)+'次'} ({r.get('consumption_type','')})")
+        else:
+            st.caption("暂无消费记录")
     st.stop()
 
 # ═══════════════════════════════════════
@@ -218,22 +236,6 @@ with c2:
                     supabase.table("user_balances").insert({"user_id": uid, "balance": int(new_bal)}).execute()
                 st.success(f"余额已更新为 {int(new_bal)} 次")
                 st.rerun()
-
-    with st.expander("📄 充值记录"):
-        recs = get_recharge_records(supabase, uid)[:20]
-        if recs:
-            for r in recs:
-                st.markdown(f"`{(r.get('created_at') or '')[:16]}` +{r['amount']}次 (¥{r['money']})")
-        else:
-            st.caption("暂无充值记录")
-    with st.expander("📄 消费记录"):
-        cons = get_consumption_records(supabase, uid)[:20]
-        if cons:
-            for r in cons:
-                amt = r['amount']; t = (r.get('created_at') or '')[:16]
-                st.markdown(f"`{t}` {'🔴'+str(amt)+'次' if amt>0 else '🟢'+str(amt)+'次'} ({r.get('consumption_type','')})")
-        else:
-            st.caption("暂无消费记录")
 
 # ── 操作卡网格：修改密码 / 退出登录 / 注销账户（一行三张）──
 st.markdown(

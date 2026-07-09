@@ -114,6 +114,21 @@ section[data-testid="stSidebar"] .stMarkdown h3 {{
 ::-webkit-scrollbar-thumb {{ background: #d8d3cb; border-radius: 8px; }}
 ::-webkit-scrollbar-track {{ background: transparent; }}
 
+/* ============ 垂直滚动条（始终保留空间，非登录/注册页适用） ============ */
+html, body {{
+    overflow-y: auto !important;
+    scrollbar-gutter: stable;
+}}
+.stAppViewContainer {{
+    overflow-y: auto !important;
+    scrollbar-gutter: stable;
+}}
+.block-container {{
+    overflow-y: auto !important;
+    scrollbar-gutter: stable;
+    padding-bottom: 2rem;
+}}
+
 /* ============ page_link 样式 ============ */
 [data-testid="stPageLink-NavLink"] a {{
     border-radius: 10px !important;
