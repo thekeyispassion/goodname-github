@@ -171,9 +171,7 @@ graph TD
 
 渲染图
 
-![AI图像生成工具介绍](D:/software/typora/image/goodname-v2.0/AI图像生成工具介绍.png)
-
-
+![AI图像生成工具介绍](AI图像生成工具介绍.png)
 
 1.页面结构总图
 
@@ -182,6 +180,7 @@ graph TD
 ├── 注册页 /register
 ├── 主页面 / (需登录)
 │   ├── 取名主页 /generate
+│   ├── AI评价名字 /evaluate
 │   ├── 历史记录页 /history
 │   └── 个人中心 /profile
 │       ├── 余额与充值 /profile/balance
@@ -223,12 +222,23 @@ graph TD
 
 
 
+| 字段         | 说明                                                         |
+| :----------- | :----------------------------------------------------------- |
+| **页面名称** | AI评价名字                                                   |
+| **路由**     | `/evaluate`                                                  |
+| **页面用途** | 输入名字，AI进行多维度评价打分                                |
+| **主要组件** | 名字输入框、评价按钮、结果卡片（总分+维度评分+评语）、评价历史列表 |
+| **可见条件** | 必须登录；若未登录，路由守卫自动跳转 `/login`                |
+| **关联状态** | 初始态（等待输入）、加载态（AI分析中）、成功态（展示评价）、异常态（余额不足/AI不可用） |
+
+
+
 | 字段         | 说明                                                       |
 | :----------- | :--------------------------------------------------------- |
 | **页面名称** | 历史记录页                                                 |
 | **路由**     | `history`                                                  |
-| **页面用途** | 查看取名历史记录                                           |
-| **主要组件** | 结果卡片列表，搜索框，收藏列表，按收藏筛选按钮             |
+| **页面用途** | 查看取名历史、搜索、评分筛选、收藏管理、用户打分           |
+| **主要组件** | 搜索框、收藏筛选、评分筛选下拉框、会话expander、名字双层expander（标签→详情+评分星标+备注） |
 | **可见条件** | 必须登录；若未登录，路由守卫自动跳转 `/login`              |
 | **关联状态** | 初始态、搜索成功态、搜索失败态、异常态（包括历史记录为空） |
 
@@ -290,7 +300,7 @@ graph TD
 
 - 位于页面最顶部，高度约64px，背景为纯白 `#FFFFFF`，底部有1px浅灰分割线
 - 左侧：品牌Logo + 系统名称“智能取名系统”
-- 右侧：依次排列——**“取名主页”** 按钮、**“历史记录”** 按钮、**“个人中心”** 按钮（显示用户头像，若无头像则显示首字母圆标）
+- 右侧：依次排列——**”取名主页”** 按钮、**”AI评价”** 按钮、**”历史记录”** 按钮、**”个人中心”** 按钮（显示用户头像，若无头像则显示首字母圆标）
 - 右侧额外区域：**“余额”** 标签（显示当前余额/剩余次数，如“余额：12次”），**“退出登录”** 按钮（文字按钮，红色提示）
 - 高亮当前所在页面（如当前为取名主页，则“取名主页”按钮为朱砂红文字，其余为灰色）
 - 交互反馈：鼠标悬停时按钮文字颜色变深，点击时轻微缩放效果
@@ -311,7 +321,7 @@ graph TD
 整体风格为新中式美学与现代SaaS设计结合，暖色工作室灯光，8K超高清，写实风格。 --ar 16:9
 ```
 
-![智能取名系统登录页设计](D:/software/typora/image/goodname-v2.0/智能取名系统登录页设计-1783493103494.png)
+![智能取名系统登录页设计 4](智能取名系统登录页设计.png)
 
 注册页
 
@@ -327,7 +337,7 @@ graph TD
 整体风格为新中式美学，暖色调，8K超高清，写实风格。 --ar 16:9
 ```
 
-![智能取名系统登录页设计2](D:/software/typora/image/goodname-v2.0/智能取名系统登录页设计2.png)
+![智能取名系统登录页设计2](智能取名系统登录页设计2.png)
 
 
 
@@ -345,7 +355,7 @@ graph TD
 左侧面板边缘有一个向左的箭头提示，表示可以滑动折叠。整体风格为新中式美学，暖白背景，朱砂红点缀，淡金高光，柔和阴影，8K超高清写实风格。 --ar 16:9
 ```
 
-![智能取名系统登录页设计3](D:/software/typora/image/goodname-v2.0/智能取名系统登录页设计3.png)
+![智能取名系统登录页设计3](智能取名系统登录页设计3.png)
 
 历史记录页
 
@@ -362,7 +372,7 @@ graph TD
 背景为暖白色，卡片为纯白色带柔和阴影。整体风格为新中式美学，简洁清晰，8K超高清写实风格。 --ar 16:9
 ```
 
-![智能取名系统登录页设计 4](D:/software/typora/image/goodname-v2.0/智能取名系统登录页设计 4.png)
+![智能取名系统登录页设计 4](智能取名系统登录页设计 4.png)
 
 
 
@@ -381,7 +391,7 @@ graph TD
 所有卡片为纯白色带柔和阴影，背景为暖白色。整体风格为新中式美学，卡片布局清晰，8K超高清写实风格。 --ar 16:9
 ```
 
-![智能取名系统登录页设计5](D:/software/typora/image/goodname-v2.0/智能取名系统登录页设计5.png)
+![智能取名系统登录页设计5](智能取名系统登录页设计5.png)
 
 
 
@@ -404,7 +414,7 @@ graph TD
 背景为暖白色，卡片为纯白色带柔和阴影。整体风格为新中式美学，简洁的财务看板风格，8K超高清写实风格。 --ar 16:9
 ```
 
-![智能取名系统登录页设计6](D:/software/typora/image/goodname-v2.0/智能取名系统登录页设计6.png)
+![智能取名系统登录页设计6](智能取名系统登录页设计6.png)
 
 
 
@@ -425,7 +435,7 @@ graph TD
 卡片为纯白色带柔和阴影，居中于暖白色背景。整体风格为新中式美学，简洁聚焦，8K超高清写实风格。 --ar 16:9
 ```
 
-![智能取名系统登录页设计 7](D:/software/typora/image/goodname-v2.0/智能取名系统登录页设计 7.png)
+![智能取名系统登录页设计 7](智能取名系统登录页设计-1783493103494.png)
 
 
 
@@ -443,7 +453,13 @@ graph TD
 
 取名主页--|历史记录按钮|-> 历史记录
 
+取名主页--|AI评价按钮|-> AI评价名字
+
 取名主页--|余额不足|-> 余额与充值
+
+AI评价名字--|余额不足|-> 余额与充值
+
+AI评价名字-->|点击导航栏|-> 取名主页
 
 历史记录-->|点击返回按钮|-> 取名主页
 
@@ -475,6 +491,7 @@ graph TD
     Register[注册页<br>/register]:::login
 
     Home[取名主页<br>/generate]:::main
+    Evaluate[AI评价名字<br>/evaluate]:::main
     History[历史记录页<br>/history]:::main
     Profile[个人中心<br>/profile]:::main
 
@@ -492,7 +509,15 @@ graph TD
     %% 主页跳转
     Home -->|顶部导航/个人中心按钮| Profile
     Home -->|顶部导航/历史记录按钮| History
+    Home -->|顶部导航/AI评价按钮| Evaluate
+    Home -.->|余额不足/次数用完| Balance
     Home -.->|token过期/未登录| Login
+
+    %% AI评价跳转
+    Evaluate -->|顶部导航| Home
+    Evaluate -->|顶部导航| History
+    Evaluate -.->|余额不足/次数用完| Balance
+    Evaluate -.->|token过期/未登录| Login
 
     %% 历史记录跳转
     History -->|点击返回按钮| Home
@@ -711,8 +736,8 @@ graph TD
     Rate -->|点击星级评分| Star["点击 1~5 星<br>更新评分状态"]:::userAction
     Rate -->|填写备注| Note["在备注框输入文字<br>如'读音好听']:::userAction
 
-    Star --> AutoSave["自动保存评分至数据库<br>candidate_names.user_rating"]:::sysAction
-    Note --> AutoSaveNote["自动保存备注至数据库<br>candidate_names.user_note"]:::sysAction
+    Star --> AutoSave[自动保存评分至数据库<br>candidate_names.user_rating]:::sysAction
+    Note --> AutoSaveNote["自动保存备注至数据库<br>candidate_names.user_note]:::sysAction
 
     AutoSave --> UpdateCard[卡片评分状态实时更新]:::sysAction
     AutoSaveNote --> UpdateCard
@@ -792,7 +817,7 @@ graph TD
     Start([用户进入AI评价页面]):::startEnd
     Start --> Input[在输入框中填写名字]:::userAction
     Input --> Click[点击评价按钮]:::userAction
-    Click --> CheckBalance{检查剩余次数<br>是否 ≥ 1?}:::decision
+    Click --> CheckBalance{"检查剩余次数<br>是否 ≥ 1?"}:::decision
     CheckBalance -->|否| Insufficient[弹窗提示余额不足<br>引导跳转充值页]:::error
     Insufficient --> Recharge[跳转余额与充值页]:::startEnd
     CheckBalance -->|是| Deduct[扣除1次生成次数]:::sysAction
